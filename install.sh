@@ -24,7 +24,9 @@ sudo dnf install -y \
     fzf \
     fastfetch \
     git \
-    curl
+    curl \
+    nodejs \
+    npm
 
 # lsd (better ls) — not always in default dnf repos, try copr first
 if ! command -v lsd &>/dev/null; then
