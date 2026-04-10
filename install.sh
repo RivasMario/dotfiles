@@ -94,6 +94,33 @@ link "$DOTFILES/.zshrc"                                  "$HOME/.zshrc"
 link "$DOTFILES/config/fastfetch/config-pokemon.jsonc"   "$HOME/.config/fastfetch/config-pokemon.jsonc"
 
 # -----------------------------------------------------------------------------
+# CLAUDE CODE
+# -----------------------------------------------------------------------------
+if ! command -v claude &>/dev/null; then
+    echo "==> Installing Claude Code..."
+    npm install -g @anthropic-ai/claude-code
+else
+    echo "==> Claude Code already installed, skipping."
+fi
+
+# Caveman plugin — terse output mode for Claude
+if command -v claude &>/dev/null; then
+    echo "==> Installing caveman Claude plugin..."
+    claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true
+    claude plugin install caveman@caveman 2>/dev/null || true
+fi
+
+# -----------------------------------------------------------------------------
+# GEMINI CLI
+# -----------------------------------------------------------------------------
+if ! command -v gemini &>/dev/null; then
+    echo "==> Installing Gemini CLI..."
+    npm install -g @google/gemini-cli
+else
+    echo "==> Gemini CLI already installed, skipping."
+fi
+
+# -----------------------------------------------------------------------------
 # SET ZSH AS DEFAULT SHELL
 # -----------------------------------------------------------------------------
 if [ "$SHELL" != "$(which zsh)" ]; then
@@ -107,7 +134,8 @@ fi
 # -----------------------------------------------------------------------------
 echo ""
 echo "==> Done! Things to do manually:"
-echo "    1. Push this repo to GitHub:  git remote add origin https://github.com/YOUR_USERNAME/dotfiles.git"
-echo "    2. Restart your terminal or run: exec zsh"
-echo "    3. Open tmux and press Ctrl+a h to see your shortcuts"
+echo "    1. Restart your terminal or run: exec zsh"
+echo "    2. Open tmux and press Ctrl+a h to see your shortcuts"
+echo "    3. Log in to Claude: claude"
+echo "    4. Log in to Gemini: gemini"
 echo ""
