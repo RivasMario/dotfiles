@@ -1,0 +1,25 @@
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "height": 5,
+        "width": 10,
+        "padding": { "top": 1 }
+    },
+    "display": {
+        "separator": " -> "
+    },
+    "modules": [
+        "break",
+        { "type": "title", "keyWidth": 10, "format": "         {6}{7}{8}" },
+        { "type": "custom", "format": " ─────────────────────────── " },
+        { "type": "kernel",   "key": " ", "keyColor": "yellow" },
+        { "type": "wm",       "key": " ", "keyColor": "blue" },
+        { "type": "shell",    "key": " ", "keyColor": "yellow" },
+        { "type": "terminal", "key": " ", "keyColor": "blue" },
+        { "type": "memory",   "key": "\udb80\udd5b ", "keyColor": "magenta", "format": "{1} / {2}" },
+        { "type": "uptime",   "key": "\udb81\udd1b ", "keyColor": "green" },
+        { "type": "custom", "format": " ─────────────────────────── " },
+        { "type": "custom", "format": "   \u001b[31m\uf444  \u001b[32m\uf444  \u001b[33m\uf444  \u001b[34m\uf444  \u001b[35m\uf444  \u001b[36m\uf444  \u001b[37m\uf444  \u001b[90m\uf444 " },
+        "break"
+    ]
+}

@@ -1,0 +1,31 @@
+  PREFIX = Ctrl+a                          press q to close
+
+  PANES
+    |             Split right
+    -             Split down
+    Alt+Arrow     Jump to pane (no prefix needed)
+    Prefix+Arrow  Resize pane
+    x             Kill pane
+
+  WINDOWS
+    c             New window
+    ,             Rename window
+    n / p         Next / previous window
+    1-9           Jump to window by number
+    w             Visual window picker
+    &             Kill window
+
+  SESSIONS
+    s             List/switch sessions
+    d             Detach (session keeps running)
+
+  COPY MODE
+    [             Enter scroll/copy mode
+    v             Start selection
+    y             Copy
+    ]             Paste
+    q             Exit copy mode
+
+  OTHER
+    r             Reload config
+    h             This help
