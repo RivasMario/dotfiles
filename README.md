@@ -29,6 +29,12 @@ exec zsh
 
 - Open tmux and press `Ctrl+a h` to see shortcuts
 - Pokemon + system info shows on every new terminal
+- Log in to Claude Code: `claude` (follows browser OAuth)
+- Log in to Gemini CLI: `gemini` (follows browser OAuth) or set API key:
+  ```bash
+  export GEMINI_API_KEY="your-key-here"
+  ```
+  Add that export to `~/.zshrc` to make it permanent.
 
 ## Adding new configs
 
