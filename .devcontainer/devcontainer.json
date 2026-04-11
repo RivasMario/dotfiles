@@ -19,5 +19,5 @@
       }
     }
   },
-  "postCreateCommand": "sudo dnf install -y gh tmux && git clone https://github.com/RivasMario/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && bash install.sh"
+  "postCreateCommand": "bash /workspaces/dotfiles/.devcontainer/setup.sh"
 }
