@@ -19,13 +19,13 @@ if [ -z "$SKIP_PACKAGES" ]; then
     echo "==> Installing packages..."
     if command -v dnf &>/dev/null; then
         sudo dnf install -y \
-            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd
+            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd libsecret
     elif command -v apt-get &>/dev/null; then
         sudo apt-get update
         sudo apt-get install -y \
-            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd
+            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd libsecret-1-0
     elif command -v brew &>/dev/null; then
-        brew install tmux zsh fzf fastfetch git node python3 lsd
+        brew install tmux zsh fzf fastfetch git node python3 lsd libsecret
     else
         echo "  [!] No supported package manager found (dnf, apt, brew). Please install requirements manually."
     fi
@@ -115,11 +115,11 @@ fi
 
 # Plugins/Extensions
 if command -v claude &>/dev/null; then
-    claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true
-    claude plugin install caveman@caveman 2>/dev/null || true
+    yes | claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true
+    yes | claude plugin install caveman@caveman 2>/dev/null || true
 fi
 if command -v gemini &>/dev/null; then
-    gemini extensions install https://github.com/JuliusBrussee/caveman 2>/dev/null || true
+    yes | gemini extensions install https://github.com/JuliusBrussee/caveman 2>/dev/null || true
 fi
 
 # -----------------------------------------------------------------------------
