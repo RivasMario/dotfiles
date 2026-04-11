@@ -9,7 +9,13 @@
       "extensions": [
         "ms-azuretools.vscode-docker",
         "redhat.vscode-yaml"
-      ]
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": { "path": "/bin/zsh" }
+        }
+      }
     }
   },
   "postCreateCommand": "sudo dnf install -y gh zsh tmux && git clone https://github.com/RivasMario/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && bash install.sh"
