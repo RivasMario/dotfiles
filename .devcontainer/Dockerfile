@@ -17,6 +17,7 @@ RUN dnf upgrade -y && \
     fzf \
     fastfetch \
     lsd \
+    libsecret \
     && dnf clean all
 
 # Create the standard dev container user (vscode) with zsh as default shell
