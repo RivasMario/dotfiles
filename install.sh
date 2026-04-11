@@ -96,6 +96,16 @@ link "$DOTFILES/.zshrc"                                  "$HOME/.zshrc"
 link "$DOTFILES/config/fastfetch/config-pokemon.jsonc"   "$HOME/.config/fastfetch/config-pokemon.jsonc"
 
 # -----------------------------------------------------------------------------
+# NPM GLOBAL PREFIX (avoids EACCES errors for non-root users)
+# -----------------------------------------------------------------------------
+echo "==> Configuring npm global prefix..."
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+export PATH=~/.npm-global/bin:$PATH
+grep -qxF "export PATH=~/.npm-global/bin:\$PATH" "$HOME/.zshrc" 2>/dev/null \
+    || echo 'export PATH=~/.npm-global/bin:$PATH' >> "$HOME/.zshrc"
+
+# -----------------------------------------------------------------------------
 # CLAUDE CODE
 # -----------------------------------------------------------------------------
 if ! command -v claude &>/dev/null; then
@@ -128,7 +138,11 @@ fi
 if [ "$SHELL" != "$(which zsh)" ]; then
     echo ""
     echo "==> Setting zsh as default shell..."
-    chsh -s "$(which zsh)"
+    if [ "$CODESPACES" = "true" ]; then
+        sudo usermod --shell "$(which zsh)" "$USER"
+    else
+        chsh -s "$(which zsh)"
+    fi
 fi
 
 # -----------------------------------------------------------------------------
