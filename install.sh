@@ -115,11 +115,15 @@ else
     echo "==> Claude Code already installed, skipping."
 fi
 
-# Caveman plugin — terse output mode for Claude
+# Caveman plugin — terse output mode for Claude and Gemini
 if command -v claude &>/dev/null; then
     echo "==> Installing caveman Claude plugin..."
     claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true
     claude plugin install caveman@caveman 2>/dev/null || true
+fi
+if command -v gemini &>/dev/null; then
+    echo "==> Installing caveman Gemini extension..."
+    gemini extensions install https://github.com/JuliusBrussee/caveman 2>/dev/null || true
 fi
 
 # -----------------------------------------------------------------------------
