@@ -11,10 +11,11 @@ RUN dnf upgrade -y && \
     findutils \
     procps-ng \
     nodejs \
+    zsh \
     && dnf clean all
 
-# Create the standard dev container user (vscode)
-RUN useradd -s /bin/bash -m vscode \
+# Create the standard dev container user (vscode) with zsh as default shell
+RUN useradd -s /bin/zsh -m vscode \
     && echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vscode \
     && chmod 0440 /etc/sudoers.d/vscode
 
