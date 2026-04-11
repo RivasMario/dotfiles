@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git lfs:*)",
+      "Bash(rm /workspaces/dotfiles/.git/hooks/pre-push)",
+      "Bash(rm /workspaces/dotfiles/.git/hooks/post-commit)",
+      "Bash(rm /workspaces/dotfiles/.git/hooks/post-checkout)",
+      "Bash(rm /workspaces/dotfiles/.git/hooks/post-merge)",
+      "Bash(git push:*)",
+      "Bash(gh api:*)",
+      "Bash(chmod +x:*)"
+    ]
+  }
+}

@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # dotfiles/install.sh — Mario's setup bootstrap
-# Run this on a fresh Fedora machine:
-#   git clone https://github.com/YOUR_USERNAME/dotfiles.git ~/dotfiles
-#   cd ~/dotfiles && bash install.sh
+# Works on Fedora, Debian/Ubuntu, and GitHub Codespaces.
 # =============================================================================
 
 set -e
@@ -17,22 +15,22 @@ echo ""
 # -----------------------------------------------------------------------------
 # PACKAGES
 # -----------------------------------------------------------------------------
-echo "==> Installing packages..."
-sudo dnf install -y \
-    tmux \
-    zsh \
-    fzf \
-    fastfetch \
-    git \
-    curl \
-    nodejs \
-    npm
-
-# lsd (better ls) — not always in default dnf repos, try copr first
-if ! command -v lsd &>/dev/null; then
-    echo "==> Installing lsd..."
-    sudo dnf copr enable -y atim/lsd 2>/dev/null || true
-    sudo dnf install -y lsd || echo "  [!] lsd not available via dnf — install manually from https://github.com/lsd-rs/lsd/releases"
+if [ -z "$SKIP_PACKAGES" ]; then
+    echo "==> Installing packages..."
+    if command -v dnf &>/dev/null; then
+        sudo dnf install -y \
+            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd
+    elif command -v apt-get &>/dev/null; then
+        sudo apt-get update
+        sudo apt-get install -y \
+            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd
+    elif command -v brew &>/dev/null; then
+        brew install tmux zsh fzf fastfetch git node python3 lsd
+    else
+        echo "  [!] No supported package manager found (dnf, apt, brew). Please install requirements manually."
+    fi
+else
+    echo "==> Skipping package installation (SKIP_PACKAGES=1)"
 fi
 
 # -----------------------------------------------------------------------------
@@ -45,18 +43,12 @@ else
     echo "==> Oh My Zsh already installed, skipping."
 fi
 
-# zsh-autosuggestions
+# zsh-plugins
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
-    echo "==> Installing zsh-autosuggestions..."
+[ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ] && \
     git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
-fi
-
-# zsh-syntax-highlighting
-if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
-    echo "==> Installing zsh-syntax-highlighting..."
+[ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ] && \
     git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-fi
 
 # -----------------------------------------------------------------------------
 # POKEMON COLORSCRIPTS
@@ -64,7 +56,13 @@ fi
 if ! command -v pokemon-colorscripts &>/dev/null; then
     echo "==> Installing pokemon-colorscripts..."
     cd "$DOTFILES/pokemon-colorscripts"
-    sudo bash install.sh
+    # Ensure it uses the right python even if 'python3' is just 'python'
+    PYTHON_CMD=$(command -v python3 || command -v python)
+    if [ -n "$PYTHON_CMD" ]; then
+        sudo bash install.sh
+    else
+        echo "  [!] Python not found, skipping pokemon-colorscripts installation."
+    fi
     cd "$DOTFILES"
 else
     echo "==> pokemon-colorscripts already installed, skipping."
@@ -72,7 +70,6 @@ fi
 
 # -----------------------------------------------------------------------------
 # SYMLINK DOTFILES
-# Symlinks mean editing the file in ~/dotfiles/ updates it everywhere.
 # -----------------------------------------------------------------------------
 echo ""
 echo "==> Linking dotfiles..."
@@ -96,44 +93,33 @@ link "$DOTFILES/.zshrc"                                  "$HOME/.zshrc"
 link "$DOTFILES/config/fastfetch/config-pokemon.jsonc"   "$HOME/.config/fastfetch/config-pokemon.jsonc"
 
 # -----------------------------------------------------------------------------
-# NPM GLOBAL PREFIX (avoids EACCES errors for non-root users)
+# NPM GLOBAL PREFIX
 # -----------------------------------------------------------------------------
 echo "==> Configuring npm global prefix..."
 mkdir -p ~/.npm-global
 npm config set prefix '~/.npm-global'
 export PATH=~/.npm-global/bin:$PATH
-grep -qxF "export PATH=~/.npm-global/bin:\$PATH" "$HOME/.zshrc" 2>/dev/null \
-    || echo 'export PATH=~/.npm-global/bin:$PATH' >> "$HOME/.zshrc"
 
 # -----------------------------------------------------------------------------
-# CLAUDE CODE
+# TOOLS (Claude, Gemini)
 # -----------------------------------------------------------------------------
 if ! command -v claude &>/dev/null; then
     echo "==> Installing Claude Code..."
     npm install -g @anthropic-ai/claude-code
-else
-    echo "==> Claude Code already installed, skipping."
 fi
 
-# Caveman plugin — terse output mode for Claude and Gemini
+if ! command -v gemini &>/dev/null; then
+    echo "==> Installing Gemini CLI..."
+    npm install -g @google/gemini-cli
+fi
+
+# Plugins/Extensions
 if command -v claude &>/dev/null; then
-    echo "==> Installing caveman Claude plugin..."
     claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true
     claude plugin install caveman@caveman 2>/dev/null || true
 fi
 if command -v gemini &>/dev/null; then
-    echo "==> Installing caveman Gemini extension..."
     gemini extensions install https://github.com/JuliusBrussee/caveman 2>/dev/null || true
-fi
-
-# -----------------------------------------------------------------------------
-# GEMINI CLI
-# -----------------------------------------------------------------------------
-if ! command -v gemini &>/dev/null; then
-    echo "==> Installing Gemini CLI..."
-    npm install -g @google/gemini-cli
-else
-    echo "==> Gemini CLI already installed, skipping."
 fi
 
 # -----------------------------------------------------------------------------
@@ -149,13 +135,5 @@ if [ "$SHELL" != "$(which zsh)" ]; then
     fi
 fi
 
-# -----------------------------------------------------------------------------
-# DONE
-# -----------------------------------------------------------------------------
 echo ""
-echo "==> Done! Things to do manually:"
-echo "    1. Restart your terminal or run: exec zsh"
-echo "    2. Open tmux and press Ctrl+a h to see your shortcuts"
-echo "    3. Log in to Claude: claude"
-echo "    4. Log in to Gemini: gemini"
-echo ""
+echo "==> Done! exec zsh to start."
