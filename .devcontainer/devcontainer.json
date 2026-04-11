@@ -18,5 +18,5 @@
       }
     }
   },
-  "postCreateCommand": "sudo dnf install -y gh zsh tmux && git clone https://github.com/RivasMario/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && bash install.sh"
+  "postCreateCommand": "sudo dnf install -y gh tmux && git clone https://github.com/RivasMario/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && bash install.sh"
 }
