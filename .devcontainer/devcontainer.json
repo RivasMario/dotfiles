@@ -4,6 +4,7 @@
     "dockerfile": "Dockerfile"
   },
   "remoteUser": "vscode",
+  "remoteEnv": { "SHELL": "/bin/zsh" },
   "customizations": {
     "vscode": {
       "extensions": [
