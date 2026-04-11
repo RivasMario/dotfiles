@@ -1,0 +1,16 @@
+{
+  "name": "diddy",
+  "build": { 
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+  "postCreateCommand": "sudo dnf install -y gh zsh tmux && git clone https://github.com/RivasMario/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && bash install.sh"
+}
