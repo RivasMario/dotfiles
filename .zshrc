@@ -133,3 +133,4 @@ _dotfiles_reminder() {
     fi
 }
 _dotfiles_reminder
+export PATH=~/.npm-global/bin:$PATH
