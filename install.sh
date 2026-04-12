@@ -149,7 +149,7 @@ if command -v tailscale &>/dev/null; then
     if ! pgrep -x tailscaled &>/dev/null; then
         if [ "$CODESPACES" = "true" ] || grep -qE 'docker|lxc' /proc/1/cgroup 2>/dev/null; then
             # Container — userspace networking (no TUN device)
-            sudo tailscaled --tun=userspace-networking &>/dev/null &
+            sudo tailscaled --tun=userspace-networking --socks5-server=localhost:1055 &>/dev/null &
             sleep 1
         elif command -v systemctl &>/dev/null; then
             sudo systemctl enable --now tailscaled 2>/dev/null || true
