@@ -32,11 +32,47 @@ This workspace manages Mario's dotfiles, optimized for Fedora and GitHub Codespa
 - **Testing:** Test changes in a new terminal session or by running `exec zsh`.
 - **Commit Style:** Focused on "why" and "what" changed in the environment.
 
+## Tailscale & Homelab Integration (Updated 2026-04-12)
+
+Tailscale is fully operational in userspace mode within Codespaces.
+
+### Connectivity Status
+- **Exit Node:** `truenas` (100.81.194.15) is active and reachable.
+- **SOCKS5 Proxy:** Required for userspace networking, running on `127.0.0.1:1055`.
+- **Proxmox (PVE):** `100.70.69.28`. Reachable via SSH using the SOCKS5 proxy and `root` user.
+- **Ollama:** Running as a container on `truenas` (100.81.194.15 / 192.168.0.203) on **port 30068**. Model: `qwen2.5-coder:7b`.
+- **OpenClaw Agent:** Fixed and running on LXC 101 (`192.168.0.119`). Port `18789`, Token `mario2026`.
+- **Kasm Machine:** VMID 100 (`192.168.0.235`). Accessible via SSH as `kasmadmin`.
+- **GL.iNet Router:** `192.168.0.1`. Accessible via SSH as `root` (Password: `CrispyPond3$`).
+
+### Usage Patterns
+- **SSH to Proxmox:**
+  ```bash
+  ssh -o ProxyCommand='ncat --proxy 127.0.0.1:1055 --proxy-type socks5 %h %p' -o StrictHostKeyChecking=no root@100.70.69.28
+  ```
+- **Ollama API Query:**
+  ```bash
+  curl --socks5-hostname 127.0.0.1:1055 http://100.81.194.15:30068/api/tags
+  ```
+- **OpenClaw UI:** `http://192.168.0.119:18789` (accessible via home network/VPN).
+
+## Work Journal (2026-04-12)
+1. **Tailscale Fix:** Installed Tailscale via script, started `tailscaled` in userspace mode with SOCKS5 proxy enabled on port 1055.
+2. **Network Discovery:** Found Ollama running on TrueNAS port 30068 (not 11434) and OpenClaw on port 18789.
+3. **OpenClaw Repair:** Identified security lockout in OpenClaw (binding to LAN without auth). Updated `openclaw.json` to enable token auth (`mario2026`) and set correct Ollama port.
+4. **Validation:** Confirmed Proxmox SSH access and Ollama connectivity.
+5. **Bottleneck Found:** Ollama container is limited to 3.2GB RAM, but `qwen2.5-coder:7b` needs 5.2GB.
+6. **REMINDER:** Increase Ollama App Memory Limit to **16GB+** in TrueNAS SCALE UI (Host has 64GB DDR4 available).
+7. **REMINDER:** Configure TrueNAS SSH (System Settings -> Services) to allow the agent access (either via password or adding its public key).
+
 ## Progress & Shared Tasks
 - [x] Unify `install.sh` and `.devcontainer/setup.sh`.
 - [x] Add multi-distro support to `install.sh`.
 - [x] Fix `python3` dependency for `pokemon-colorscripts` in Dockerfile.
 - [x] Clean up `.zshrc` and integrate `fastfetch` + `pokemon-colorscripts`.
 - [x] Create `GEMINI.md` and `CLAUDE.md` for AI context.
+- [x] Add Tailscale to dotfiles (install, daemon start, operator setup).
+- [x] Verify connectivity to Proxmox via SOCKS5 proxy.
+- [x] Fix OpenClaw agent configuration and Ollama connection.
 - [ ] Add portable clipboard support to `.tmux.conf` (current `wl-copy` is Wayland-specific).
 - [ ] Setup automated testing/validation for the install script.
