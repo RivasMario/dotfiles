@@ -146,9 +146,9 @@ Write-Host "  [ok] pokemon-colorscripts -> $wrapperPath"
 # -----------------------------------------------------------------------------
 Write-Host ""
 Write-Host "==> Installing CLI-Anything plugin..."
-$cliAnythingRepo = "$userHome\CLI-Anything"
-if (!(Test-Path $cliAnythingRepo)) {
-    git clone https://github.com/HKUDS/CLI-Anything.git $cliAnythingRepo 2>&1 | Out-Null
+$cliAnythingRepo = "$dotfiles\CLI-Anything"
+if (!(Test-Path "$cliAnythingRepo\.git")) {
+    git -C $dotfiles submodule update --init --recursive 2>&1 | Out-Null
 }
 $pluginDst = "$userHome\.claude\plugins\cli-anything"
 if (!(Test-Path $pluginDst)) {
