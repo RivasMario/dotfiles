@@ -23,6 +23,13 @@ source $ZSH/oh-my-zsh.sh
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.npm-global/bin:$PATH"
 
+# Windows (MSYS2) — add zsh/tmux/tools if running under Git Bash or MSYS2
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+    export PATH="/c/msys64/usr/bin:$PATH"
+    export PATH="/c/Users/$(whoami)/AppData/Local/Programs/Python/Python312/Scripts:$PATH"
+    export PATH="/c/Users/$(whoami)/AppData/Local/Programs/Python/Python312:$PATH"
+fi
+
 # Fuzzy history search with Ctrl+R
 if command -v fzf &>/dev/null; then
     source <(fzf --zsh)

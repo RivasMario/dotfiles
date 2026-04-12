@@ -4,9 +4,11 @@ This file provides context for Claude Code when working in this repository.
 
 ## Project Context
 - **Owner:** Mario
-- **OS Focus:** Fedora (primary), Ubuntu/Debian/macOS (secondary compatibility).
-- **Core Stack:** Zsh (Oh My Zsh), tmux, fastfetch, lsd, pokemon-colorscripts.
-- **Tools:** Claude Code, Gemini CLI.
+- **OS Focus:** Windows 11 (primary work machine), Fedora (homelab/personal).
+- **Core Stack:** Zsh (Oh My Zsh via MSYS2 on Windows), tmux, fastfetch, lsd, pokemon-colorscripts.
+- **Tools:** Claude Code, Gemini CLI, CLI-Anything (GIMP/Inkscape/KiCad harnesses).
+- **Windows installer:** `install.ps1` (PowerShell) — use this on Windows. `install.sh` is for Linux/macOS.
+- **Dotfile linking:** Windows uses hard links (no admin needed). Linux uses symlinks.
 
 ## Architectural Patterns
 - **Symlinking:** Dotfiles in the root are symlinked to `$HOME`.
@@ -28,8 +30,11 @@ This file provides context for Claude Code when working in this repository.
 - [x] Add Tailscale to dotfiles (install, daemon start, operator setup).
 - [x] Verify connectivity to Proxmox via SOCKS5 proxy.
 - [x] Fix OpenClaw agent configuration and Ollama connection.
-- [ ] Add portable clipboard support to `.tmux.conf` (current `wl-copy` is Wayland-specific).
-- [ ] Setup automated testing/validation for the install script.
+- [x] Add portable clipboard support to `.tmux.conf` (now detects clip.exe/wl-copy/pbcopy/xclip).
+- [x] Add Windows PowerShell installer (`install.ps1`).
+- [x] Add MSYS2 PATH to `.zshrc` for Windows.
+- [ ] Setup automated testing/validation for the install scripts.
+- [ ] Generate KiCad CLI harness via CLI-Anything (`/cli-anything:cli-anything https://github.com/KiCad/kicad-source-mirror`).
 
 ## Notes for Claude
 - Gemini CLI is also used in this workspace; please keep `GEMINI.md` and `CLAUDE.md` in sync regarding project progress.
