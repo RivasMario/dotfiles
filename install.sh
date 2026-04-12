@@ -19,13 +19,24 @@ if [ -z "$SKIP_PACKAGES" ]; then
     echo "==> Installing packages..."
     if command -v dnf &>/dev/null; then
         sudo dnf install -y \
-            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd libsecret
+            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd libsecret tailscale
     elif command -v apt-get &>/dev/null; then
         sudo apt-get update
         sudo apt-get install -y \
-            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd libsecret-1-0
+            tmux zsh fzf git curl nodejs npm python3 libsecret-1-0 || true
+        # fastfetch and lsd not in standard apt repos — install separately
+        if ! command -v fastfetch &>/dev/null; then
+            FASTFETCH_DEB=$(mktemp --suffix=.deb)
+            curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb" -o "$FASTFETCH_DEB" && \
+                sudo dpkg -i "$FASTFETCH_DEB" && rm -f "$FASTFETCH_DEB" || echo "  [!] fastfetch install failed, skipping."
+        fi
+        if ! command -v lsd &>/dev/null; then
+            LSD_DEB=$(mktemp --suffix=.deb)
+            curl -fsSL "https://github.com/lsd-rs/lsd/releases/latest/download/lsd_amd64.deb" -o "$LSD_DEB" && \
+                sudo dpkg -i "$LSD_DEB" && rm -f "$LSD_DEB" || echo "  [!] lsd install failed, skipping."
+        fi
     elif command -v brew &>/dev/null; then
-        brew install tmux zsh fzf fastfetch git node python3 lsd libsecret
+        brew install tmux zsh fzf fastfetch git node python3 lsd libsecret tailscale
     else
         echo "  [!] No supported package manager found (dnf, apt, brew). Please install requirements manually."
     fi
@@ -123,16 +134,43 @@ if command -v gemini &>/dev/null; then
 fi
 
 # -----------------------------------------------------------------------------
+# TAILSCALE
+# -----------------------------------------------------------------------------
+if ! command -v tailscale &>/dev/null; then
+    echo "==> Installing Tailscale..."
+    if command -v apt-get &>/dev/null; then
+        curl -fsSL https://tailscale.com/install.sh | sh || echo "  [!] Tailscale install failed, skipping."
+    fi
+    # dnf and brew already handled in the PACKAGES section above
+fi
+
+if command -v tailscale &>/dev/null; then
+    # Start daemon if not running
+    if ! pgrep -x tailscaled &>/dev/null; then
+        if [ "$CODESPACES" = "true" ] || grep -qE 'docker|lxc' /proc/1/cgroup 2>/dev/null; then
+            # Container — userspace networking (no TUN device)
+            sudo tailscaled --tun=userspace-networking &>/dev/null &
+            sleep 1
+        elif command -v systemctl &>/dev/null; then
+            sudo systemctl enable --now tailscaled 2>/dev/null || true
+        fi
+    fi
+
+    # Let current user run tailscale without sudo in future
+    sudo tailscale set --operator="$USER" 2>/dev/null || true
+
+    echo ""
+    echo "==> Tailscale ready. Connect with:"
+    echo "    tailscale up --accept-dns=false --accept-routes --exit-node=100.81.194.15"
+fi
+
+# -----------------------------------------------------------------------------
 # SET ZSH AS DEFAULT SHELL
 # -----------------------------------------------------------------------------
 if [ "$SHELL" != "$(which zsh)" ]; then
     echo ""
     echo "==> Setting zsh as default shell..."
-    if [ "$CODESPACES" = "true" ]; then
-        sudo usermod --shell "$(which zsh)" "$USER"
-    else
-        chsh -s "$(which zsh)"
-    fi
+    sudo usermod --shell "$(which zsh)" "$USER"
 fi
 
 echo ""
