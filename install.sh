@@ -5,12 +5,18 @@
 # =============================================================================
 
 set -e
+export DEBIAN_FRONTEND=noninteractive
 DOTFILES="$(cd "$(dirname "$0")" && pwd)"
 
 echo ""
 echo "==> Mario's dotfiles installer"
 echo "    Dotfiles dir: $DOTFILES"
 echo ""
+
+# Check for sudo password requirement
+if ! sudo -n true 2>/dev/null; then
+    echo "==> [!] Sudo requires a password. Please be ready to enter it."
+fi
 
 # -----------------------------------------------------------------------------
 # PACKAGES
