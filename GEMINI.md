@@ -41,9 +41,9 @@ Tailscale is fully operational in userspace mode within Codespaces.
 - **SOCKS5 Proxy:** Required for userspace networking, running on `127.0.0.1:1055`.
 - **Proxmox (PVE):** `100.70.69.28`. Reachable via SSH using the SOCKS5 proxy and `root` user.
 - **Ollama:** Running as a container on `truenas` (100.81.194.15 / 192.168.0.203) on **port 30068**. Model: `qwen2.5-coder:7b`.
-- **OpenClaw Agent:** Fixed and running on LXC 101 (`192.168.0.119`). Port `18789`, Token `mario2026`.
+- **OpenClaw Agent:** Fixed and running on LXC 101 (`192.168.0.119`). Port `18789`, Token `<REDACTED>`.
 - **Kasm Machine:** VMID 100 (`192.168.0.235`). Accessible via SSH as `kasmadmin`.
-- **GL.iNet Router:** `192.168.0.1`. Accessible via SSH as `root` (Password: `CrispyPond3$`).
+- **GL.iNet Router:** `192.168.0.1`. Accessible via SSH as `root` (Password: `<REDACTED>`).
 
 ### Usage Patterns
 - **SSH to Proxmox:**
@@ -59,7 +59,7 @@ Tailscale is fully operational in userspace mode within Codespaces.
 ## Work Journal (2026-04-12)
 1. **Tailscale Fix:** Installed Tailscale via script, started `tailscaled` in userspace mode with SOCKS5 proxy enabled on port 1055.
 2. **Network Discovery:** Found Ollama running on TrueNAS port 30068 (not 11434) and OpenClaw on port 18789.
-3. **OpenClaw Repair:** Identified security lockout in OpenClaw (binding to LAN without auth). Updated `openclaw.json` to enable token auth (`mario2026`) and set correct Ollama port.
+3. **OpenClaw Repair:** Identified security lockout in OpenClaw (binding to LAN without auth). Updated `openclaw.json` to enable token auth (`<REDACTED>`) and set correct Ollama port.
 4. **Validation:** Confirmed Proxmox SSH access and Ollama connectivity.
 5. **Bottleneck Found:** Ollama container is limited to 3.2GB RAM, but `qwen2.5-coder:7b` needs 5.2GB.
 6. **REMINDER:** Increase Ollama App Memory Limit to **16GB+** in TrueNAS SCALE UI (Host has 64GB DDR4 available).
