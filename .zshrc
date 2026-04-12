@@ -38,6 +38,15 @@ if command -v lsd &>/dev/null; then
 fi
 
 # -----------------------------------------------------------------------------
+# HOMELAB & TAILSCALE
+# -----------------------------------------------------------------------------
+alias ts-proxy="ALL_PROXY=socks5://localhost:1055"
+alias pve-ssh="ssh -o ProxyCommand='ncat --proxy localhost:1055 --proxy-type socks5 %h %p' -o StrictHostKeyChecking=no root@100.70.69.28"
+alias kasm-ssh="ssh -o ProxyCommand='ncat --proxy localhost:1055 --proxy-type socks5 %h %p' -o StrictHostKeyChecking=no kasmadmin@192.168.0.235"
+alias router-ssh="ssh -o ProxyCommand='ncat --proxy localhost:1055 --proxy-type socks5 %h %p' -o StrictHostKeyChecking=no root@192.168.0.1"
+alias ollama-query="curl --socks5-hostname localhost:1055 -s -X POST http://100.81.194.15:30068/api/generate -d"
+
+# -----------------------------------------------------------------------------
 # STARTUP (Pokemon!)
 # -----------------------------------------------------------------------------
 if command -v pokemon-colorscripts &>/dev/null; then

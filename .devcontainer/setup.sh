@@ -3,7 +3,7 @@
 # Invokes the main install.sh with SKIP_PACKAGES=1 (packages already in Dockerfile).
 
 set -e
-DOTFILES="/workspaces/dotfiles"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$DOTFILES"
 export SKIP_PACKAGES=1
@@ -12,7 +12,7 @@ bash install.sh
 # Start tailscaled in userspace mode if not already running (container has no TUN).
 if command -v tailscaled &>/dev/null && ! pgrep -x tailscaled &>/dev/null; then
     echo "==> Starting tailscaled (userspace networking)..."
-    sudo tailscaled --tun=userspace-networking &>/dev/null &
+    sudo tailscaled --tun=userspace-networking --socks5-server=localhost:1055 &>/dev/null &
     sleep 1
 fi
 
