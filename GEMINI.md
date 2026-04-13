@@ -27,14 +27,15 @@ This workspace manages Mario's dotfiles, optimized for Fedora and GitHub Codespa
 - `.devcontainer/`: Codespaces environment definition.
 
 ## Operational Instructions
-- **Installation:** Always use `bash install.sh` from the root of the repo.
-- **Validation:** After installation, verify symlinks with `ls -la ~ | grep '\->'`.
+- **Installation (Linux/macOS):** Always use `bash install.sh` from the root of the repo.
+- **Installation (Windows):** Run `powershell -ExecutionPolicy Bypass -File install.ps1` from the root of the repo.
+- **Validation:** After installation, verify links with `ls -la ~ | grep '\->'` (Linux) or `fsutil hardlink list $HOME\.zshrc` (Windows).
 - **Testing:** Test changes in a new terminal session or by running `exec zsh`.
 - **Commit Style:** Focused on "why" and "what" changed in the environment.
 
 ## Tailscale & Homelab Integration (Updated 2026-04-12)
 
-Tailscale is fully operational in userspace mode within Codespaces.
+Tailscale is fully operational in userspace mode within Codespaces, and now also configured via `install.ps1` for Windows.
 
 ### Connectivity Status
 - **Exit Node:** `truenas` (100.81.194.15) is active and reachable.
@@ -64,6 +65,8 @@ Tailscale is fully operational in userspace mode within Codespaces.
 5. **Bottleneck Found:** Ollama container is limited to 3.2GB RAM, but `qwen2.5-coder:7b` needs 5.2GB.
 6. **REMINDER:** Increase Ollama App Memory Limit to **16GB+** in TrueNAS SCALE UI (Host has 64GB DDR4 available).
 7. **REMINDER:** Configure TrueNAS SSH (System Settings -> Services) to allow the agent access (either via password or adding its public key).
+8. **Windows Support:** Added `install.ps1` for automated Windows setup (winget, MSYS2, hard-linked dotfiles, Python 3.12 path).
+9. **Portable Clipboard:** Updated `.tmux.conf` to detect `clip.exe` on Windows, `wl-copy` on Wayland, `pbcopy` on macOS, and `xclip` on X11.
 
 ## Progress & Shared Tasks
 - [x] Unify `install.sh` and `.devcontainer/setup.sh`.
@@ -74,5 +77,8 @@ Tailscale is fully operational in userspace mode within Codespaces.
 - [x] Add Tailscale to dotfiles (install, daemon start, operator setup).
 - [x] Verify connectivity to Proxmox via SOCKS5 proxy.
 - [x] Fix OpenClaw agent configuration and Ollama connection.
-- [ ] Add portable clipboard support to `.tmux.conf` (current `wl-copy` is Wayland-specific).
+- [x] Add portable clipboard support to `.tmux.conf` (detects clip.exe/wl-copy/pbcopy/xclip).
+- [x] Add Windows PowerShell installer (`install.ps1`).
+- [x] Add MSYS2 and Python 3.12 PATH support to `.zshrc` for Windows.
 - [ ] Setup automated testing/validation for the install script.
+- [ ] Generate KiCad CLI harness via CLI-Anything (`/cli-anything:cli-anything https://github.com/KiCad/kicad-source-mirror`).
