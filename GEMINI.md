@@ -33,6 +33,15 @@ This workspace manages Mario's dotfiles, optimized for Fedora and GitHub Codespa
 - **Testing:** Test changes in a new terminal session or by running `exec zsh`.
 - **Commit Style:** Focused on "why" and "what" changed in the environment.
 
+## GitHub & SSH Configuration
+
+The workspace is configured to use SSH for GitHub authentication.
+- **Identity File:** `~/.ssh/github`.
+- **Config:** `dotfiles/config/ssh/config` is symlinked to `~/.ssh/config`.
+- **Note:** SSH is REQUIRED for pushing changes to GitHub since HTTPS password auth is disabled.
+
+---
+
 ## Tailscale & Homelab Integration (Updated 2026-04-12)
 
 Tailscale is fully operational in userspace mode within Codespaces, and now also configured via `install.ps1` for Windows.

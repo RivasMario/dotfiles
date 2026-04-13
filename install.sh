@@ -103,11 +103,13 @@ link() {
 }
 
 mkdir -p "$HOME/.config/fastfetch"
+mkdir -p "$HOME/.ssh"
 
 link "$DOTFILES/.tmux.conf"                              "$HOME/.tmux.conf"
 link "$DOTFILES/.tmux-help.txt"                          "$HOME/.tmux-help.txt"
 link "$DOTFILES/.zshrc"                                  "$HOME/.zshrc"
 link "$DOTFILES/config/fastfetch/config-pokemon.jsonc"   "$HOME/.config/fastfetch/config-pokemon.jsonc"
+link "$DOTFILES/config/ssh/config"                       "$HOME/.ssh/config"
 
 # -----------------------------------------------------------------------------
 # NPM GLOBAL PREFIX
