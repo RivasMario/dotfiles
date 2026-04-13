@@ -10,7 +10,21 @@ Mario's config files. Works on **Windows** (primary), Fedora, and Ubuntu.
 | `.tmux-help.txt` | Cheatsheet popup (`Ctrl+a h`) |
 | `.zshrc` | Zsh + Oh My Zsh, fzf, lsd, pokemon on startup |
 | `config/fastfetch/config-pokemon.jsonc` | Fastfetch layout for pokemon-colorscripts |
+| `config/ssh/config` | GitHub SSH configuration (expects `~/.ssh/github`) |
 | `pokemon-colorscripts/` | Pokemon ASCII art scripts |
+
+## GitHub & SSH Setup
+
+The dotfiles expect a GitHub SSH key at `~/.ssh/github`.
+To generate a new key and add it to GitHub:
+
+1. Generate key: `ssh-keygen -t ed25519 -f ~/.ssh/github`
+2. Copy public key: `cat ~/.ssh/github.pub`
+3. Add to GitHub: [Settings -> SSH and GPG keys](https://github.com/settings/keys)
+
+Once linked, all `git push` operations will use this key automatically.
+
+---
 
 ## Fresh install
 
