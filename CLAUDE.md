@@ -36,8 +36,17 @@ This file provides context for Claude Code when working in this repository.
 - [ ] Setup automated testing/validation for the install scripts.
 - [ ] Generate KiCad CLI harness via CLI-Anything (`/cli-anything:cli-anything https://github.com/KiCad/kicad-source-mirror`).
 
+## SkyWave96 Keyboard Project
+**Plate DXF Generation Rules:** See `SKYWAY96_RULES.md` (Claude ↔ Gemini synchronized)
+- 96% keyboard, 101 switches, PCB-mount stabs
+- Data hierarchy: KiCad (authority) > KLE JSON > images
+- Critical: 14mm × 14mm cutouts, no stab plate geometry
+- Coordinate mapping required (PCB ≠ plate origin)
+- Verification checklist mandatory before any DXF output
+- Current SVG: `96_PLATE_v10.svg` (ready for manual screw hole placement)
+
 ## Notes for Claude
-- Gemini CLI is also used in this workspace; please keep `GEMINI.md` and `CLAUDE.md` in sync regarding project progress.
+- Gemini CLI is also used in this workspace; keep `GEMINI.md` and `CLAUDE.md` in sync regarding project progress.
 - Avoid `sudo` for npm global packages (use `~/.npm-global/bin` which is already in PATH).
 - Tailscale runs in userspace mode; all home network traffic MUST use the SOCKS5 proxy at `127.0.0.1:1055`.
 - Ollama is on `100.81.194.15:30068`, and OpenClaw UI is at `192.168.0.119:18789`.
