@@ -42,6 +42,16 @@ The workspace is configured to use SSH for GitHub authentication.
 
 ---
 
+## SkyWave96 Keyboard Project
+**Plate DXF Generation Rules:** See `SKYWAY96_RULES.md` (Claude ↔ Gemini synchronized)
+- 96% keyboard, 101 switches, PCB-mount stabs
+- Data hierarchy: KiCad (authority) > KLE JSON > images
+- Critical: 14mm × 14mm cutouts, no stab plate geometry
+- Coordinate mapping required (PCB ≠ plate origin)
+- Manual screw hole placement in Inkscape before export
+- Verification checklist mandatory before any DXF output
+- Current SVG: `96_PLATE_v10.svg` (ready in Downloads)
+
 ## Tailscale & Homelab Integration (Updated 2026-04-12)
 
 Tailscale is fully operational in userspace mode within Codespaces, and now also configured via `install.ps1` for Windows.
@@ -66,7 +76,16 @@ Tailscale is fully operational in userspace mode within Codespaces, and now also
   ```
 - **OpenClaw UI:** `http://192.168.0.119:18789` (accessible via home network/VPN).
 
-## Work Journal (2026-04-12)
+## Work Journal
+
+### Recovery (2026-04-12, 19:39 - Claude Code)
+1. **Plate Project Status:** Found gemini's crashed SVG→DXF conversion task in progress (v1-v7 done, v8-v10 pending).
+2. **Root Cause:** Conversion scripts hardcoded v7 paths; gemini lacked batch processing capability.
+3. **Solution:** Created `batch_convert.py` - robust converter handling all versions with proper error handling.
+4. **Outcome:** Successfully converted v4-v10 DXF (v2/v3 skipped due to malformed XML). All active designs now have matching outputs.
+5. **Artifacts:** See `PLATE_PROJECT.md` for full details.
+
+### Original (2026-04-12)
 1. **Tailscale Fix:** Installed Tailscale via script, started `tailscaled` in userspace mode with SOCKS5 proxy enabled on port 1055.
 2. **Network Discovery:** Found Ollama running on TrueNAS port 30068 (not 11434) and OpenClaw on port 18789.
 3. **OpenClaw Repair:** Identified security lockout in OpenClaw (binding to LAN without auth). Updated `openclaw.json` to enable token auth (`<REDACTED>`) and set correct Ollama port.
@@ -89,5 +108,6 @@ Tailscale is fully operational in userspace mode within Codespaces, and now also
 - [x] Add portable clipboard support to `.tmux.conf` (detects clip.exe/wl-copy/pbcopy/xclip).
 - [x] Add Windows PowerShell installer (`install.ps1`).
 - [x] Add MSYS2 and Python 3.12 PATH support to `.zshrc` for Windows.
+- [x] Recover and batch-convert plate DXF files (v4-v10 successful).
 - [ ] Setup automated testing/validation for the install script.
 - [ ] Generate KiCad CLI harness via CLI-Anything (`/cli-anything:cli-anything https://github.com/KiCad/kicad-source-mirror`).
