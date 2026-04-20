@@ -1,8 +1,9 @@
-  PREFIX = Ctrl+a                          press q to close
+  PREFIX = Ctrl+a  OR  ` (backtick)           press q to close
 
   PANES
-    |             Split right
-    -             Split down
+    v  OR  -      Split right (vertical)
+    h  OR  |      Split down (horizontal)
+    f             Toggle full-screen zoom
     Alt+Arrow     Jump to pane (no prefix needed)
     Prefix+Arrow  Resize pane
     x             Kill pane
@@ -17,7 +18,12 @@
 
   SESSIONS
     s             List/switch sessions
-    d             Detach (session keeps running)
+    d             Detach (session keeps running background)
+    
+  SHELL ALIASES
+    tm            New session
+    tl            List sessions
+    ta            Attach to session
 
   COPY MODE
     [             Enter scroll/copy mode
@@ -28,4 +34,4 @@
 
   OTHER
     r             Reload config
-    h             This help
+    ?             This help (opens in new window)
