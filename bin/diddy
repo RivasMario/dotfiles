@@ -35,108 +35,138 @@ def get_env_context():
     import platform
     return f"OS: {platform.system()} | Host: {platform.node()} | CWD: {os.getcwd()}"
 
-def ask_ollama(model, system, prompt):
+def ask_ollama(model, messages, stream=False):
     data = json.dumps({
         "model": model,
-        "messages": [
-            {"role": "system", "content": f"{get_env_context()} {system}"},
-            {"role": "user", "content": prompt}
-        ],
-        "stream": False,
+        "messages": messages,
+        "stream": stream,
         "keep_alive": 0,
         "options": {"num_ctx": MAX_CONTEXT_TOKENS}
     })
-    cmd = ["curl", "-s", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    try:
-        return json.loads(result.stdout).get("message", {}).get("content", "")
-    except:
-        return f"Error: {result.stdout}"
+    cmd = ["curl", "-s", "-N", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
+    
+    if not stream:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            return json.loads(result.stdout).get("message", {}).get("content", "")
+        except:
+            return f"Error: {result.stdout}"
+    else:
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
+        full_content = ""
+        for line in process.stdout:
+            if line.strip():
+                try:
+                    chunk = json.loads(line)
+                    piece = chunk.get("message", {}).get("content", "")
+                    full_content += piece
+                    print(piece, end="", flush=True)
+                except: pass
+        print()
+        return full_content
 
 def execute_tool(action_line):
     match = re.match(r'ACTION:\s*(\w+)\s*"(.*)"', action_line, re.IGNORECASE)
-    if not match: return "Error: Invalid action format."
+    if not match: return "Error: Invalid action format. Use ACTION: tool_name \"command\""
     tool, cmd = match.groups()
-    print(f"{BOLD}{BLUE}[Operator Executing {tool}]{RESET} {cmd}")
+    print(f"{BOLD}{BLUE}[Executing {tool}]{RESET} {cmd}")
     
-    if tool.lower() == "run_local":
-        res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        return (res.stdout + res.stderr).strip()
-    elif tool.lower() == "ssh_pve":
-        ssh = ["ssh", "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p", "-o", "StrictHostKeyChecking=no", f"root@{PVE_IP}", cmd]
-        res = subprocess.run(ssh, capture_output=True, text=True)
-        return (res.stdout + res.stderr).strip()
-    elif tool.lower() == "ssh_truenas":
-        ssh = ["sshpass", "-p", "crispypond211", "ssh", "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p", "-o", "StrictHostKeyChecking=no", f"nasuser@{NAS_IP}", cmd]
-        res = subprocess.run(ssh, capture_output=True, text=True)
-        return (res.stdout + res.stderr).strip()
+    try:
+        if tool.lower() == "run_local":
+            res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+            return (res.stdout + res.stderr).strip()
+        elif tool.lower() == "ssh_pve":
+            ssh = ["ssh", "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", f"root@{PVE_IP}", cmd]
+            res = subprocess.run(ssh, capture_output=True, text=True, timeout=60)
+            return (res.stdout + res.stderr).strip()
+        elif tool.lower() == "ssh_truenas":
+            ssh = ["sshpass", "-p", "crispypond211", "ssh", "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", f"nasuser@{NAS_IP}", cmd]
+            res = subprocess.run(ssh, capture_output=True, text=True, timeout=60)
+            return (res.stdout + res.stderr).strip()
+    except Exception as e:
+        return f"Error: {str(e)}"
     return "Unknown tool."
 
-def cmd_jipoe(mission):
-    print(f"{BOLD}{GREEN}🔍 INITIATING JIPOE (Intelligence Prep of the Operational Environment){RESET}")
-    sys_prompt = """You are a JIPOE Analyst. Prepare an Intelligence Packet for the Commanding Officer. 
-    1. Define the Operational Environment (Hosts, Paths, Constraints).
-    2. Evaluate the Adversary (The problem or mission).
-    3. Present TWO Courses of Action (COA):
-       - COA 1: Conservative/Safe Approach.
-       - COA 2: Direct/Aggressive Approach.
-    Output ONLY the markdown packet. Structure it professionally."""
+def cmd_drone():
+    os.system('clear')
+    print(f"{BOLD}{CYAN}╭──────────────────────────────────────────────────────────╮{RESET}")
+    print(f"{BOLD}{CYAN}│   🎮 DIDDY DRONE: INTERACTIVE AUTONOMOUS SESSION        │{RESET}")
+    print(f"{BOLD}{CYAN}╰──────────────────────────────────────────────────────────╯{RESET}")
+    print(f"    Target:  {get_env_context()}")
+    print(f"    Handoff: JIPOE (3B) -> Executor (7B)")
+    print(f"{CYAN}    ----------------------------------------------------{RESET}\n")
+
+    chat_history = []
     
-    packet = ask_ollama(PLANNER_MODEL, sys_prompt, mission)
-    with open(PACKET_FILE, "w") as f:
-        f.write(packet)
-    print(f"\n{BOLD}JIPOE Packet generated: {PACKET_FILE}{RESET}\n")
-    print(packet)
-    print(f"\n{BOLD}{YELLOW}CO: Review {PACKET_FILE} and run 'diddy execute --coa X'{RESET}")
+    while True:
+        try:
+            mission = input(f"{BOLD}{YELLOW}Drone > {RESET}").strip()
+            if not mission: continue
+            if mission.lower() in ['exit', 'quit', 'q']: break
+            
+            # STEP 1: JIPOE (Planner)
+            print(f"{GREEN}Checking intel...{RESET}")
+            planner_sys = "You are a planner. Create a 3-step technical plan to solve the mission. Do not write code. Just numbered steps."
+            planner_msg = [{"role": "system", "content": planner_sys}, {"role": "user", "content": mission}]
+            plan = ask_ollama(PLANNER_MODEL, planner_msg)
+            print(f"{CYAN}Plan:{RESET} {plan.replace('\n', ' ')}")
+            
+            # STEP 2: Executor (Action Loop)
+            print(f"{BLUE}Executing...{RESET}")
+            exec_sys = f"You are an autonomous agent. Execute this plan: {plan}. You MUST use this format:\nTHOUGHT: reason\nACTION: run_local \"cmd\" (or ssh_pve, ssh_truenas)\nEnd with REPORT: summary."
+            exec_history = [{"role": "system", "content": exec_sys}, {"role": "user", "content": mission}]
+            
+            final_raw = ""
+            for i in range(5):
+                response = ask_ollama(EXECUTOR_MODEL, exec_history)
+                if "ACTION:" in response:
+                    action_line = [l for l in response.split('\n') if "ACTION:" in l][0]
+                    obs = execute_tool(action_line)
+                    print(f"{CYAN}Result:{RESET} {obs[:100]}...")
+                    exec_history.append({"role": "assistant", "content": response})
+                    exec_history.append({"role": "user", "content": f"OBSERVATION: {obs}"})
+                else:
+                    final_raw = response
+                    break
+            
+            # STEP 3: Response (Polisher)
+            print(f"{GREEN}Finalizing response:{RESET}")
+            polisher_sys = f"Summarize the work done. Provide a final response to the user. RAW DATA: {final_raw}"
+            polisher_msg = [{"role": "system", "content": polisher_sys}, {"role": "user", "content": mission}]
+            ask_ollama(PLANNER_MODEL, polisher_msg, stream=True)
+            print()
+            
+        except (KeyboardInterrupt, EOFError): break
+
+def cmd_jipoe(mission):
+    # (Legacy JIPOE command kept for standalone use)
+    print(f"{BOLD}{GREEN}🔍 JIPOE MODE{RESET}")
+    sys_prompt = "Prepare a MISSION_PACKET.md with COA 1 (Safe) and COA 2 (Direct). Output ONLY markdown."
+    packet = ask_ollama(PLANNER_MODEL, [{"role": "system", "content": sys_prompt}, {"role": "user", "content": mission}])
+    with open(PACKET_FILE, "w") as f: f.write(packet)
+    print(f"Packet saved to {PACKET_FILE}")
 
 def cmd_execute(coa_number):
-    if not os.path.exists(PACKET_FILE):
-        print(f"{RED}Error: No JIPOE packet found. Run 'diddy jipoe' first.{RESET}")
-        return
-    
-    print(f"{BOLD}{YELLOW}🚀 TACTICAL EXECUTION: COA {coa_number}{RESET}")
-    with open(PACKET_FILE, "r") as f:
-        packet = f.read()
-
-    history = [{"role": "system", "content": f"You are the Tactical Operator. Execute COA {coa_number} from this JIPOE Packet: {packet}. Use format THOUGHT: reason, ACTION: tool_name \"cmd\". Tools: run_local, ssh_pve, ssh_truenas. Limit 5 steps. End with REPORT: final result."}]
-    
-    log_content = f"EXECUTION OF COA {coa_number}\n"
-    for i in range(5):
-        data = json.dumps({"model": EXECUTOR_MODEL, "messages": history, "stream": False, "keep_alive": 0})
-        cmd = ["curl", "-s", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        resp = json.loads(res.stdout).get("message", {}).get("content", "")
-        
-        print(f"\n{CYAN}--- Step {i+1} ---{RESET}\n{resp}")
-        log_content += f"\nStep {i+1}:\n{resp}\n"
-        
-        if "REPORT:" in resp: break
-        if "ACTION:" in resp:
-            lines = resp.split("\n")
-            action_line = [l for l in lines if "ACTION:" in l][0]
-            obs = execute_tool(action_line)
-            print(f"{BLUE}OBSERVATION:{RESET} {obs[:200]}...")
-            log_content += f"OBSERVATION: {obs}\n"
-            history.append({"role": "assistant", "content": resp})
-            history.append({"role": "user", "content": f"OBSERVATION: {obs}"})
-        else: break
-    
-    with open(LOG_FILE, "w") as f:
-        f.write(log_content)
-    print(f"\n{BOLD}Tactical log saved to {LOG_FILE}{RESET}")
+    # (Legacy Execute command kept)
+    print(f"{BOLD}{YELLOW}🚀 EXECUTING COA {coa_number}{RESET}")
+    if not os.path.exists(PACKET_FILE): return
+    with open(PACKET_FILE, "r") as f: packet = f.read()
+    sys_p = f"Execute COA {coa_number} from packet: {packet}. Use ACTION: format. End with REPORT:."
+    res = ask_ollama(EXECUTOR_MODEL, [{"role": "system", "content": sys_p}])
+    print(res)
 
 def main():
-    parser = argparse.ArgumentParser(description="Diddy: JIPOE Autonomous Agent")
+    parser = argparse.ArgumentParser(description="Diddy: Autonomous Agent")
     subparsers = parser.add_subparsers(dest="command")
-    
+    subparsers.add_parser("drone")
     jipoe_parser = subparsers.add_parser("jipoe")
-    jipoe_parser.add_argument("mission", help="The goal of the mission")
-    
+    jipoe_parser.add_argument("mission")
     exec_parser = subparsers.add_parser("execute")
-    exec_parser.add_argument("--coa", type=int, default=1, help="Which COA to execute (1 or 2)")
+    exec_parser.add_argument("--coa", type=int, default=1)
     
     args = parser.parse_args()
-    if args.command == "jipoe": cmd_jipoe(args.mission)
+    if args.command == "drone": cmd_drone()
+    elif args.command == "jipoe": cmd_jipoe(args.mission)
     elif args.command == "execute": cmd_execute(args.coa)
     else: parser.print_help()
 

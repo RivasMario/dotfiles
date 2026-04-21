@@ -1,1 +1,10 @@
-ssh private key
+# SSH Keys
+github
+github.pub
+
+# AI Agent Logs & Artifacts
+brain-router.log
+nohup.out
+tailscaled.state
+MISSION_*.md
+.claw/

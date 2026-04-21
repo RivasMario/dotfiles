@@ -146,9 +146,9 @@ alias aider-gemma-remote="export OLLAMA_API_BASE=http://100.81.194.15:30068 && a
 
 # Tmux helpers
 # Diddy - Agent Setup
-export CLAW_BINARY="/workspaces/claw-code-local/target/release/claw"
+export CLAW_BINARY="/workspaces/claw-code-local/rust/target/release/claw"
 alias brain-router="$HOME/dotfiles/bin/brain-router"
-alias claw='OPENAI_BASE_URL="http://127.0.0.1:11435/v1" OPENAI_API_KEY="ollama" $CLAW_BINARY --model dual-brain'
+
 
 alias tm='tmux new -s'
 alias tl='tmux ls'

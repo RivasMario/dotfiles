@@ -25,7 +25,7 @@ RESET = "\033[0m"
 def print_banner():
     os.system('clear')
     print(f"{BOLD}{CYAN}╭──────────────────────────────────────────────────────────╮{RESET}")
-    print(f"{BOLD}{CYAN}│   ⚡ CLAW: AUTONOMOUS LOCAL AGENT (v3.0 - DUAL BRAIN)    │{RESET}")
+    print(f"{BOLD}{CYAN}│   ⚡ CLAW: AUTONOMOUS LOCAL AGENT (v5.0 - DUAL BRAIN)    │{RESET}")
     print(f"{BOLD}{CYAN}╰──────────────────────────────────────────────────────────╯{RESET}")
     print(f"    Target:  {os.getcwd()}")
     print(f"    Brains:  {PLANNER} (Plan) | {EXECUTOR} (Code)")
@@ -37,14 +37,16 @@ def ask(model, messages, stream=False):
         "messages": messages,
         "stream": stream,
         "keep_alive": 0,
-        "options": {"num_ctx": 4096}
+        "options": {"num_ctx": 4096, "temperature": 0.0} # Temp 0 for protocol adherence
     })
     cmd = ["curl", "-s", "-N", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
     
     if not stream:
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        try: return json.loads(res.stdout).get("message", {}).get("content", "")
-        except: return f"Error: {res.stdout}"
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        try: 
+            return json.loads(result.stdout).get("message", {}).get("content", "")
+        except: 
+            return f"Error: {result.stdout}"
     else:
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
         content = ""
@@ -58,15 +60,16 @@ def ask(model, messages, stream=False):
                 except: pass
         return content
 
-def execute(action_line):
-    match = re.match(r'ACTION:\s*(\w+)\s*"(.*)"', action_line, re.IGNORECASE)
-    if not match: return "Error: format should be ACTION: run \"cmd\""
-    tool, cmd = match.groups()
+def execute_cmd(cmd):
+    # Sanitize command
+    cmd = cmd.strip().strip('"').strip('`')
     print(f"\n{BOLD}{MAGENTA} ⚙️  Executing:{RESET} {cmd}")
     try:
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-        return (res.stdout + res.stderr).strip()
-    except Exception as e: return str(e)
+        output = (res.stdout + res.stderr).strip()
+        return output if output else "[Success: Command completed with no output]"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 def main():
     print_banner()
@@ -77,38 +80,68 @@ def main():
     mission = " ".join(sys.argv[1:])
     
     # 1. PLANNING
-    print(f"{BOLD}{GREEN} 🧠 Thinking...{RESET}")
+    print(f"{BOLD}{GREEN} 🧠 Planning Strategy...{RESET}")
+    planner_sys = "You are a Technical Lead. Provide a 3-step numbered list of shell commands needed to solve the mission. No explanation."
     plan = ask(PLANNER, [
-        {"role": "system", "content": "You are a lead architect. Create a 3-step technical plan. No code. Numbered steps only."},
+        {"role": "system", "content": planner_sys},
         {"role": "user", "content": mission}
     ])
-    print(f"{CYAN} Plan:{RESET} {plan.replace('\n', ' ')}")
+    print(f"{CYAN} Strategy:{RESET} {plan.replace('\n', ' ')}")
 
     # 2. TACTICAL EXECUTION
-    print(f"{BOLD}{BLUE} 🚀 Working...{RESET}")
-    exec_history = [
-        {"role": "system", "content": f"You are an autonomous agent. Execute this plan: {plan}. You MUST use format:\nTHOUGHT: reason\nACTION: run \"command\"\nEnd with DONE."},
-        {"role": "user", "content": mission}
-    ]
+    print(f"{BOLD}{BLUE} 🚀 Initiating Autonomous Protocol...{RESET}")
     
-    final_output = ""
-    for i in range(5):
-        resp = ask(EXECUTOR, exec_history)
-        if "ACTION:" in resp:
-            action_line = [l for l in resp.split('\n') if "ACTION:" in l][0]
-            obs = execute(action_line)
-            print(f"{BLUE} Result:{RESET} {obs[:100]}...")
-            exec_history.append({"role": "assistant", "content": resp})
-            exec_history.append({"role": "user", "content": f"OBSERVATION: {obs}"})
-        else:
-            final_output = resp
-            break
+    # The "Force" System Prompt - extremely strict
+    exec_sys = (
+        "You are a Terminal Executor. You solve tasks ONLY by running bash commands.\n"
+        "PROTOCOL:\n"
+        "1. Start with THOUGHT: <your reasoning>\n"
+        "2. Output ACTION: <bash command>\n"
+        "3. Wait for result.\n"
+        "4. Repeat until done.\n"
+        "5. End with FINISHED.\n\n"
+        "NEVER describe what you will do. Just run the command.\n"
+        f"Goal: {mission}\n"
+        f"Steps: {plan}"
+    )
+    
+    history = [{"role": "system", "content": exec_sys}]
+    
+    for i in range(8):
+        # We add the mission as a reminder every time
+        current_prompt = history + [{"role": "user", "content": "Proceed with the next command in the plan. Format: ACTION: <cmd>"}]
+        resp = ask(EXECUTOR, current_prompt)
+        
+        # Log the model's raw thought for debugging
+        if "THOUGHT:" in resp:
+            thought = resp.split("ACTION:")[0].replace("THOUGHT:", "").strip()
+            print(f"{CYAN} Thought:{RESET} {thought[:80]}...")
 
-    # 3. BRIEFING
-    print(f"\n{BOLD}{GREEN} ✨ Response:{RESET}")
+        # Parse Action
+        if "ACTION:" in resp:
+            # Extract everything after ACTION: until the end of the line or next label
+            cmd_part = resp.split("ACTION:")[1].split("\n")[0].strip()
+            # Clean up markdown code blocks if the model used them
+            cmd_part = re.sub(r'```[a-z]*', '', cmd_part).replace('```', '').strip()
+            
+            observation = execute_cmd(cmd_part)
+            print(f"{BLUE} Output:{RESET} {observation[:120]}...")
+            
+            history.append({"role": "assistant", "content": resp})
+            history.append({"role": "user", "content": f"RESULT: {observation}"})
+        elif "FINISHED" in resp.upper() or "DONE" in resp.upper():
+            break
+        else:
+            # If it's just talking, force it back into the lane
+            history.append({"role": "assistant", "content": resp})
+            history.append({"role": "user", "content": "ERROR: You must use the ACTION: <cmd> format. Do not summarize yet."})
+
+    # 3. FINAL BRIEFING
+    print(f"\n{BOLD}{GREEN} ✨ Mission Summary:{RESET}")
+    polisher_sys = "You are a professional assistant. Briefly state that the mission is complete based on the logs."
     ask(PLANNER, [
-        {"role": "system", "content": "Summarize the work done clearly for the user."},
-        {"role": "user", "content": f"MISSION: {mission}\nDATA: {final_output}"}
+        {"role": "system", "content": polisher_sys},
+        {"role": "user", "content": f"MISSION: {mission}"}
     ], stream=True)
     print()
 
