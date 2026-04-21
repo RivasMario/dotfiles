@@ -1,41 +1,115 @@
 #!/usr/bin/env python3
-import sys
+import json
 import subprocess
+import sys
 import os
+import re
+import time
 
-# Colors
+# OLLAMA CONFIG
+OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
+PROXY = "127.0.0.1:1055"
+PLANNER = "llama3.2:3b"
+EXECUTOR = "qwen2.5-coder:7b"
+
+# COLORS
 CYAN = "\033[96m"
 BLUE = "\033[94m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
 MAGENTA = "\033[95m"
+RED = "\033[91m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
 def print_banner():
     os.system('clear')
     print(f"{BOLD}{CYAN}╭──────────────────────────────────────────────────────────╮{RESET}")
-    print(f"{BOLD}{CYAN}│                                                          │{RESET}")
-    print(f"{BOLD}{CYAN}│   ⚡ CLAW: AUTONOMOUS LOCAL AGENT (v2.0 - DUAL BRAIN)    │{RESET}")
-    print(f"{BOLD}{CYAN}│                                                          │{RESET}")
+    print(f"{BOLD}{CYAN}│   ⚡ CLAW: AUTONOMOUS LOCAL AGENT (v3.0 - DUAL BRAIN)    │{RESET}")
     print(f"{BOLD}{CYAN}╰──────────────────────────────────────────────────────────╯{RESET}")
-    print(f"{BOLD}{BLUE}    Router:    Enabled (Port 11435){RESET}")
-    print(f"{BOLD}{BLUE}    Execution: Autonomous Terminal Access{RESET}")
-    print(f"{MAGENTA}    ----------------------------------------------------{RESET}\n")
+    print(f"    Target:  {os.getcwd()}")
+    print(f"    Brains:  {PLANNER} (Plan) | {EXECUTOR} (Code)")
+    print(f"{CYAN}    ----------------------------------------------------{RESET}\n")
 
-if __name__ == "__main__":
-    print_banner()
-    # Pass all arguments to the actual claw binary
-    # We use the environment variables that we previously set in .zshrc
-    env = os.environ.copy()
-    env["OPENAI_BASE_URL"] = "http://127.0.0.1:11435/v1"
-    env["OPENAI_API_KEY"] = "ollama"
+def ask(model, messages, stream=False):
+    data = json.dumps({
+        "model": model,
+        "messages": messages,
+        "stream": stream,
+        "keep_alive": 0,
+        "options": {"num_ctx": 4096}
+    })
+    cmd = ["curl", "-s", "-N", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
     
-    cmd = [os.environ.get("CLAW_BINARY", "/workspaces/claw-code-local/rust/target/release/claw")]
-    if len(sys.argv) > 1:
-        cmd.extend(sys.argv[1:])
+    if not stream:
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        try: return json.loads(res.stdout).get("message", {}).get("content", "")
+        except: return f"Error: {res.stdout}"
     else:
-        cmd.append("--help") # Show help if no mission provided
-        
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
+        content = ""
+        for line in process.stdout:
+            if line.strip():
+                try:
+                    chunk = json.loads(line)
+                    piece = chunk.get("message", {}).get("content", "")
+                    content += piece
+                    print(piece, end="", flush=True)
+                except: pass
+        return content
+
+def execute(action_line):
+    match = re.match(r'ACTION:\s*(\w+)\s*"(.*)"', action_line, re.IGNORECASE)
+    if not match: return "Error: format should be ACTION: run \"cmd\""
+    tool, cmd = match.groups()
+    print(f"\n{BOLD}{MAGENTA} ⚙️  Executing:{RESET} {cmd}")
     try:
-        subprocess.run(cmd, env=env)
-    except KeyboardInterrupt:
-        print(f"\n{RED}Claw terminated by user.{RESET}")
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+        return (res.stdout + res.stderr).strip()
+    except Exception as e: return str(e)
+
+def main():
+    print_banner()
+    if len(sys.argv) < 2:
+        print(f"{YELLOW}Usage: claw \"your mission\"{RESET}")
+        return
+
+    mission = " ".join(sys.argv[1:])
+    
+    # 1. PLANNING
+    print(f"{BOLD}{GREEN} 🧠 Thinking...{RESET}")
+    plan = ask(PLANNER, [
+        {"role": "system", "content": "You are a lead architect. Create a 3-step technical plan. No code. Numbered steps only."},
+        {"role": "user", "content": mission}
+    ])
+    print(f"{CYAN} Plan:{RESET} {plan.replace('\n', ' ')}")
+
+    # 2. TACTICAL EXECUTION
+    print(f"{BOLD}{BLUE} 🚀 Working...{RESET}")
+    exec_history = [
+        {"role": "system", "content": f"You are an autonomous agent. Execute this plan: {plan}. You MUST use format:\nTHOUGHT: reason\nACTION: run \"command\"\nEnd with DONE."},
+        {"role": "user", "content": mission}
+    ]
+    
+    final_output = ""
+    for i in range(5):
+        resp = ask(EXECUTOR, exec_history)
+        if "ACTION:" in resp:
+            action_line = [l for l in resp.split('\n') if "ACTION:" in l][0]
+            obs = execute(action_line)
+            print(f"{BLUE} Result:{RESET} {obs[:100]}...")
+            exec_history.append({"role": "assistant", "content": resp})
+            exec_history.append({"role": "user", "content": f"OBSERVATION: {obs}"})
+        else:
+            final_output = resp
+            break
+
+    # 3. BRIEFING
+    print(f"\n{BOLD}{GREEN} ✨ Response:{RESET}")
+    ask(PLANNER, [
+        {"role": "system", "content": "Summarize the work done clearly for the user."},
+        {"role": "user", "content": f"MISSION: {mission}\nDATA: {final_output}"}
+    ], stream=True)
+    print()
+
+if __name__ == "__main__": main()
