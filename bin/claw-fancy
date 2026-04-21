@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+import json
+import subprocess
+import sys
+import os
+import re
+import time
+
+# OLLAMA CONFIG
+OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
+PROXY = "127.0.0.1:1055"
+PLANNER = "llama3.2:3b"
+EXECUTOR = "qwen2.5-coder:7b"
+
+# COLORS
+CYAN = "\033[96m"
+BLUE = "\033[94m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+MAGENTA = "\033[95m"
+RED = "\033[91m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+def print_banner():
+    os.system('clear')
+    print(f"{BOLD}{CYAN}╭──────────────────────────────────────────────────────────╮{RESET}")
+    print(f"{BOLD}{CYAN}│   ⚡ CLAW: AUTONOMOUS LOCAL AGENT (v5.0 - DUAL BRAIN)    │{RESET}")
+    print(f"{BOLD}{CYAN}╰──────────────────────────────────────────────────────────╯{RESET}")
+    print(f"    Target:  {os.getcwd()}")
+    print(f"    Brains:  {PLANNER} (Plan) | {EXECUTOR} (Code)")
+    print(f"{CYAN}    ----------------------------------------------------{RESET}\n")
+
+def ask(model, messages, stream=False):
+    data = json.dumps({
+        "model": model,
+        "messages": messages,
+        "stream": stream,
+        "keep_alive": 0,
+        "options": {"num_ctx": 4096, "temperature": 0.0} # Temp 0 for protocol adherence
+    })
+    cmd = ["curl", "-s", "-N", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
+    
+    if not stream:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        try: 
+            return json.loads(result.stdout).get("message", {}).get("content", "")
+        except: 
+            return f"Error: {result.stdout}"
+    else:
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
+        content = ""
+        for line in process.stdout:
+            if line.strip():
+                try:
+                    chunk = json.loads(line)
+                    piece = chunk.get("message", {}).get("content", "")
+                    content += piece
+                    print(piece, end="", flush=True)
+                except: pass
+        return content
+
+def execute_cmd(cmd):
+    # Sanitize command
+    cmd = cmd.strip().strip('"').strip('`')
+    print(f"\n{BOLD}{MAGENTA} ⚙️  Executing:{RESET} {cmd}")
+    try:
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+        output = (res.stdout + res.stderr).strip()
+        return output if output else "[Success: Command completed with no output]"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def main():
+    print_banner()
+    if len(sys.argv) < 2:
+        print(f"{YELLOW}Usage: claw \"your mission\"{RESET}")
+        return
+
+    mission = " ".join(sys.argv[1:])
+    
+    # 1. PLANNING
+    print(f"{BOLD}{GREEN} 🧠 Planning Strategy...{RESET}")
+    planner_sys = "You are a Technical Lead. Provide a 3-step numbered list of shell commands needed to solve the mission. No explanation."
+    plan = ask(PLANNER, [
+        {"role": "system", "content": planner_sys},
+        {"role": "user", "content": mission}
+    ])
+    print(f"{CYAN} Strategy:{RESET} {plan.replace('\n', ' ')}")
+
+    # 2. TACTICAL EXECUTION
+    print(f"{BOLD}{BLUE} 🚀 Initiating Autonomous Protocol...{RESET}")
+    
+    # The "Force" System Prompt - extremely strict
+    exec_sys = (
+        "You are a Terminal Executor. You solve tasks ONLY by running bash commands.\n"
+        "PROTOCOL:\n"
+        "1. Start with THOUGHT: <your reasoning>\n"
+        "2. Output ACTION: <bash command>\n"
+        "3. Wait for result.\n"
+        "4. Repeat until done.\n"
+        "5. End with FINISHED.\n\n"
+        "NEVER describe what you will do. Just run the command.\n"
+        f"Goal: {mission}\n"
+        f"Steps: {plan}"
+    )
+    
+    history = [{"role": "system", "content": exec_sys}]
+    
+    for i in range(8):
+        # We add the mission as a reminder every time
+        current_prompt = history + [{"role": "user", "content": "Proceed with the next command in the plan. Format: ACTION: <cmd>"}]
+        resp = ask(EXECUTOR, current_prompt)
+        
+        # Log the model's raw thought for debugging
+        if "THOUGHT:" in resp:
+            thought = resp.split("ACTION:")[0].replace("THOUGHT:", "").strip()
+            print(f"{CYAN} Thought:{RESET} {thought[:80]}...")
+
+        # Parse Action
+        if "ACTION:" in resp:
+            # Extract everything after ACTION: until the end of the line or next label
+            cmd_part = resp.split("ACTION:")[1].split("\n")[0].strip()
+            # Clean up markdown code blocks if the model used them
+            cmd_part = re.sub(r'```[a-z]*', '', cmd_part).replace('```', '').strip()
+            
+            observation = execute_cmd(cmd_part)
+            print(f"{BLUE} Output:{RESET} {observation[:120]}...")
+            
+            history.append({"role": "assistant", "content": resp})
+            history.append({"role": "user", "content": f"RESULT: {observation}"})
+        elif "FINISHED" in resp.upper() or "DONE" in resp.upper():
+            break
+        else:
+            # If it's just talking, force it back into the lane
+            history.append({"role": "assistant", "content": resp})
+            history.append({"role": "user", "content": "ERROR: You must use the ACTION: <cmd> format. Do not summarize yet."})
+
+    # 3. FINAL BRIEFING
+    print(f"\n{BOLD}{GREEN} ✨ Mission Summary:{RESET}")
+    polisher_sys = "You are a professional assistant. Briefly state that the mission is complete based on the logs."
+    ask(PLANNER, [
+        {"role": "system", "content": polisher_sys},
+        {"role": "user", "content": f"MISSION: {mission}"}
+    ], stream=True)
+    print()
+
+if __name__ == "__main__": main()

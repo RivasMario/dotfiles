@@ -96,6 +96,27 @@ Tailscale is fully operational in userspace mode within Codespaces, and now also
 8. **Windows Support:** Added `install.ps1` for automated Windows setup (winget, MSYS2, hard-linked dotfiles, Python 3.12 path).
 9. **Portable Clipboard:** Updated `.tmux.conf` to detect `clip.exe` on Windows, `wl-copy` on Wayland, `pbcopy` on macOS, and `xclip` on X11.
 
+## Split-Brain AI Agent Architecture (New 2026-04-21)
+
+The workspace now features a custom, high-performance AI agent suite optimized for 8GB VRAM (RTX 3060 Ti). It uses a "Split-Brain" strategy to maximize speed and intelligence.
+
+### Core Strategy: The "Navy Workflow"
+- **Planner Lane (Intelligence Analyst):** Uses `llama3.2:3b` (3 Billion parameters). Lightning fast (160+ tok/s). Responsible for high-level JIPOE (Joint Intelligence Prep), planning, and final briefing.
+- **Executor Lane (Cryptologic Technician):** Uses `qwen2.5-coder:7b` (7 Billion parameters). Deep technical logic. Responsible for autonomous execution of the chosen Course of Action (COA).
+- **VRAM Guard:** Hard limit of **4096 tokens** (`MAX_CONTEXT_TOKENS`) to ensure 100% GPU residency on 8GB cards. Spilling to system RAM is blocked.
+
+### Tools in `dotfiles/bin/`
+- **`diddy`**: The primary action agent. Supports `jipoe` (planning), `execute` (tactical action), and `drone` (interactive autonomous session) modes. Aligned with Navy JIPOE doctrine.
+- **`claw`**: A high-end, protocol-first autonomous agent for repository work. Native Python implementation with a visually distinct "Claw" terminal.
+- **`brain-router`**: A background proxy (Port 11435) that automatically routes small requests to the 3B model and large context/code tasks to the 7B model.
+
+### VRAM & Hardware Notes
+- **Ollama Host:** `100.81.194.15:30068` (TrueNAS). 
+- **RTX 3060 Ti (8GB):** Optimized for 7B-8B models. Larger models (e.g. Gemma 4 e4b) will spill to CPU and run slow (20 tok/s vs 80+ tok/s).
+- **GPU Upgrade:** If upgraded to **RTX 4080 (16GB)**, increase `MAX_CONTEXT_TOKENS` in `bin/diddy` and `bin/claw-fancy` to unleash full potential.
+
+---
+
 ## Progress & Shared Tasks
 - [x] Unify `install.sh` and `.devcontainer/setup.sh`.
 - [x] Add multi-distro support to `install.sh`.
@@ -105,9 +126,10 @@ Tailscale is fully operational in userspace mode within Codespaces, and now also
 - [x] Add Tailscale to dotfiles (install, daemon start, operator setup).
 - [x] Verify connectivity to Proxmox via SOCKS5 proxy.
 - [x] Fix OpenClaw agent configuration and Ollama connection.
-- [x] Add portable clipboard support to `.tmux.conf` (detects clip.exe/wl-copy/pbcopy/xclip).
+- [x] Add portable clipboard support to `.tmux.conf`.
 - [x] Add Windows PowerShell installer (`install.ps1`).
-- [x] Add MSYS2 and Python 3.12 PATH support to `.zshrc` for Windows.
 - [x] Recover and batch-convert plate DXF files (v4-v10 successful).
+- [x] **New:** Implement Split-Brain Agent Suite (`diddy`, `claw`, `brain-router`).
+- [x] **New:** Securely purge leaked SSH keys from Git history.
 - [ ] Setup automated testing/validation for the install script.
-- [ ] Generate KiCad CLI harness via CLI-Anything (`/cli-anything:cli-anything https://github.com/KiCad/kicad-source-mirror`).
+- [ ] Generate KiCad CLI harness via CLI-Anything.

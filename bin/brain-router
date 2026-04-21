@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+import subprocess
+import re
+
+# CONFIGURATION
+OLLAMA_V1_URL = "http://100.81.194.15:30068/v1/chat/completions"
+PROXY = "127.0.0.1:1055"
+PLANNER_MODEL = "llama3.2:3b"
+EXECUTOR_MODEL = "qwen2.5-coder:7b"
+
+class BrainRouter(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        request_json = json.loads(post_data.decode('utf-8'))
+        
+        # 1. ROUTING (The "Lanes" strategy)
+        prompt_size = len(str(request_json.get('messages', [])))
+        if prompt_size < 3500:
+            target_model = PLANNER_MODEL
+            lane = "PLANNER (3B)"
+        else:
+            target_model = EXECUTOR_MODEL
+            lane = "EXECUTOR (7B)"
+            
+        print(f"REQ: {json.dumps(request_json)[:500]}")
+        request_json['model'] = target_model
+        
+        # 2. FORWARD REQUEST
+        new_data = json.dumps(request_json).encode('utf-8')
+        cmd = ["curl", "-s", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", new_data, OLLAMA_V1_URL]
+        
+        result = subprocess.run(cmd, capture_output=True)
+        if result.returncode != 0:
+            self.send_response(500)
+            self.end_headers()
+            return
+
+        # 3. TRANSLATION (Fixing the JSON "Poop")
+        try:
+            resp_json = json.loads(result.stdout.decode('utf-8'))
+            
+            # Check if model outputted tool call as TEXT instead of tool_calls object
+            if 'choices' in resp_json and len(resp_json['choices']) > 0:
+                message = resp_json['choices'][0].get('message', {})
+                content = message.get('content', '')
+                
+                # If we see JSON tool structure in the text content
+                if '"name":' in content and '"arguments":' in content:
+                    print(f"🛠️  Detected text tool call. Translating to native harness format...")
+                    
+                    # Regex to find the JSON block inside the text
+                    match = re.search(r'\{.*"name".*"arguments".*\}', content, re.DOTALL)
+                    if match:
+                        tool_json_str = match.group(0)
+                        try:
+                            tool_data = json.loads(tool_json_str)
+                            # Inject into proper OpenAI tool_calls structure
+                            message['tool_calls'] = [{
+                                "id": "call_local_" + str(hash(tool_json_str)),
+                                "type": "function",
+                                "function": {
+                                    "name": tool_data.get('name'),
+                                    "arguments": json.dumps(tool_data.get('arguments'))
+                                }
+                            }]
+                            # Clear the content so it doesn't print the raw JSON to user
+                            message['content'] = content.replace(tool_json_str, "").strip()
+                            print(f"✅ Translation successful: {tool_data.get('name')}")
+                        except:
+                            pass
+            
+            final_resp = json.dumps(resp_json).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', len(final_resp))
+            self.end_headers()
+            self.wfile.write(final_resp)
+            
+        except Exception as e:
+            print(f"❌ Response translation error: {e}")
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(result.stdout)
+
+def run(server_class=HTTPServer, handler_class=BrainRouter, port=11435):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print(f"🚀 CLAW DUAL-BRAIN ROUTER ACTIVE ON PORT {port}")
+    httpd.serve_forever()
+
+if __name__ == "__main__":
+    run()
