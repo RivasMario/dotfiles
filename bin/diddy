@@ -15,11 +15,11 @@ EXECUTOR_MODEL = "qwen2.5-coder:7b"
 PVE_IP = "100.70.69.28"
 NAS_IP = "100.81.194.15"
 
-# HARD VRAM LIMITS (RTX 3060 Ti - 8GB)
+# HARD VRAM LIMITS
 MAX_CONTEXT_TOKENS = 4096
 
-# Files
-PLAN_FILE = "MISSION_PLAN.md"
+# Artifacts
+PACKET_FILE = "MISSION_PACKET.md"
 LOG_FILE = "MISSION_LOG.md"
 
 # Colors
@@ -57,7 +57,7 @@ def execute_tool(action_line):
     match = re.match(r'ACTION:\s*(\w+)\s*"(.*)"', action_line, re.IGNORECASE)
     if not match: return "Error: Invalid action format."
     tool, cmd = match.groups()
-    print(f"{BOLD}{BLUE}[Executing {tool}]{RESET} {cmd}")
+    print(f"{BOLD}{BLUE}[Operator Executing {tool}]{RESET} {cmd}")
     
     if tool.lower() == "run_local":
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -72,27 +72,35 @@ def execute_tool(action_line):
         return (res.stdout + res.stderr).strip()
     return "Unknown tool."
 
-def cmd_plan(mission):
-    print(f"{BOLD}{GREEN}📝 PLANNER LANE (IS) ACTIVE{RESET}")
-    sys_prompt = "You are a Planner. Create a strict, step-by-step markdown plan to solve the user's mission. Identify which files need to be checked and which hosts (local, PVE, TrueNAS) need to be accessed. Output ONLY the markdown plan."
-    plan = ask_ollama(PLANNER_MODEL, sys_prompt, mission)
-    with open(PLAN_FILE, "w") as f:
-        f.write(plan)
-    print(f"\n{BOLD}Plan generated and saved to {PLAN_FILE}{RESET}\n{plan}")
+def cmd_jipoe(mission):
+    print(f"{BOLD}{GREEN}🔍 INITIATING JIPOE (Intelligence Prep of the Operational Environment){RESET}")
+    sys_prompt = """You are a JIPOE Analyst. Prepare an Intelligence Packet for the Commanding Officer. 
+    1. Define the Operational Environment (Hosts, Paths, Constraints).
+    2. Evaluate the Adversary (The problem or mission).
+    3. Present TWO Courses of Action (COA):
+       - COA 1: Conservative/Safe Approach.
+       - COA 2: Direct/Aggressive Approach.
+    Output ONLY the markdown packet. Structure it professionally."""
+    
+    packet = ask_ollama(PLANNER_MODEL, sys_prompt, mission)
+    with open(PACKET_FILE, "w") as f:
+        f.write(packet)
+    print(f"\n{BOLD}JIPOE Packet generated: {PACKET_FILE}{RESET}\n")
+    print(packet)
+    print(f"\n{BOLD}{YELLOW}CO: Review {PACKET_FILE} and run 'diddy execute --coa X'{RESET}")
 
-def cmd_act():
-    if not os.path.exists(PLAN_FILE):
-        print(f"{RED}Error: No {PLAN_FILE} found. Run 'diddy plan' first.{RESET}")
+def cmd_execute(coa_number):
+    if not os.path.exists(PACKET_FILE):
+        print(f"{RED}Error: No JIPOE packet found. Run 'diddy jipoe' first.{RESET}")
         return
     
-    print(f"{BOLD}{YELLOW}🔧 EXECUTOR LANE (CT) ACTIVE{RESET}")
-    with open(PLAN_FILE, "r") as f:
-        plan = f.read()
+    print(f"{BOLD}{YELLOW}🚀 TACTICAL EXECUTION: COA {coa_number}{RESET}")
+    with open(PACKET_FILE, "r") as f:
+        packet = f.read()
 
-    # Simple execution loop
-    history = [{"role": "system", "content": f"Execute this plan: {plan}. Use format THOUGHT: reason, ACTION: tool_name \"cmd\". Tools: run_local, ssh_pve, ssh_truenas. Limit 5 steps. End with REPORT: summary."}]
+    history = [{"role": "system", "content": f"You are the Tactical Operator. Execute COA {coa_number} from this JIPOE Packet: {packet}. Use format THOUGHT: reason, ACTION: tool_name \"cmd\". Tools: run_local, ssh_pve, ssh_truenas. Limit 5 steps. End with REPORT: final result."}]
     
-    log_content = ""
+    log_content = f"EXECUTION OF COA {coa_number}\n"
     for i in range(5):
         data = json.dumps({"model": EXECUTOR_MODEL, "messages": history, "stream": False, "keep_alive": 0})
         cmd = ["curl", "-s", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
@@ -104,42 +112,32 @@ def cmd_act():
         
         if "REPORT:" in resp: break
         if "ACTION:" in resp:
-            action_line = [l for l in resp.split("\n") if "ACTION:" in l][0]
+            lines = resp.split("\n")
+            action_line = [l for l in lines if "ACTION:" in l][0]
             obs = execute_tool(action_line)
-            print(f"{BLUE}RESULT:{RESET} {obs[:200]}...")
-            log_content += f"RESULT: {obs}\n"
+            print(f"{BLUE}OBSERVATION:{RESET} {obs[:200]}...")
+            log_content += f"OBSERVATION: {obs}\n"
             history.append({"role": "assistant", "content": resp})
             history.append({"role": "user", "content": f"OBSERVATION: {obs}"})
         else: break
     
     with open(LOG_FILE, "w") as f:
         f.write(log_content)
-    print(f"\n{BOLD}Execution log saved to {LOG_FILE}{RESET}")
-
-def cmd_brief():
-    if not os.path.exists(LOG_FILE):
-        print(f"{RED}Error: No {LOG_FILE} found. Run 'diddy act' first.{RESET}")
-        return
-    print(f"{BOLD}{GREEN}🎖️  BRIEFING LANE (IS) ACTIVE{RESET}")
-    with open(LOG_FILE, "r") as f: log = f.read()
-    sys_prompt = "You are a senior analyst. Summarize the raw technical logs into a professional BLUF (Bottom Line Up Front) brief for the CO."
-    brief = ask_ollama(PLANNER_MODEL, sys_prompt, log)
-    print(f"\n{BOLD}BLUF:{RESET}\n{brief}")
+    print(f"\n{BOLD}Tactical log saved to {LOG_FILE}{RESET}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Diddy: Split-Brain Navy Agent")
+    parser = argparse.ArgumentParser(description="Diddy: JIPOE Autonomous Agent")
     subparsers = parser.add_subparsers(dest="command")
     
-    plan_parser = subparsers.add_parser("plan")
-    plan_parser.add_argument("mission", help="The goal of the mission")
+    jipoe_parser = subparsers.add_parser("jipoe")
+    jipoe_parser.add_argument("mission", help="The goal of the mission")
     
-    subparsers.add_parser("act")
-    subparsers.add_parser("brief")
+    exec_parser = subparsers.add_parser("execute")
+    exec_parser.add_argument("--coa", type=int, default=1, help="Which COA to execute (1 or 2)")
     
     args = parser.parse_args()
-    if args.command == "plan": cmd_plan(args.mission)
-    elif args.command == "act": cmd_act()
-    elif args.command == "brief": cmd_brief()
+    if args.command == "jipoe": cmd_jipoe(args.mission)
+    elif args.command == "execute": cmd_execute(args.coa)
     else: parser.print_help()
 
 if __name__ == "__main__": main()
