@@ -177,6 +177,19 @@ if command -v tailscale &>/dev/null; then
 fi
 
 # -----------------------------------------------------------------------------
+# KDE PLASMA EXTRAS (physical machines only)
+# -----------------------------------------------------------------------------
+if [ -z "$SKIP_PACKAGES" ] && command -v dnf &>/dev/null && command -v plasmashell &>/dev/null; then
+    if ! rpm -q wavetask &>/dev/null 2>&1; then
+        echo "==> Installing wavetask (macOS-style Plasma dock)..."
+        sudo dnf copr enable -y vcalles/wavetask
+        sudo dnf install -y wavetask
+    else
+        echo "==> wavetask already installed, skipping."
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # SET ZSH AS DEFAULT SHELL
 # -----------------------------------------------------------------------------
 if [ "$SHELL" != "$(which zsh)" ]; then
