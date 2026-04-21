@@ -15,17 +15,27 @@ class BrainRouter(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         request_json = json.loads(post_data.decode('utf-8'))
         
-        # ROUTING LOGIC
-        # If the input is small (< 800 tokens approx), use the fast Planner.
-        # If it's a massive context/file dump, use the heavy Executor.
-        prompt_size = len(str(request_json.get('messages', [])))
+        # PROMPT INJECTION: Force local models to act as autonomous agents
+        tool_instruction = (
+            "You are an autonomous agent with access to a Linux terminal. "
+            "To perform tasks, you MUST use the provided tools. "
+            "If you need to run a command, use the bash tool. "
+            "If you need to read a file, use the read_file tool. "
+            "Do not just explain what to do; actually execute the steps using your tools."
+        )
         
-        if prompt_size < 3000: # ~2000 tokens
+        if 'messages' in request_json and len(request_json['messages']) > 0:
+            # Inject at the start of the system message or as a new system message
+            request_json['messages'].insert(0, {"role": "system", "content": tool_instruction})
+
+        # ROUTING LOGIC
+        prompt_size = len(str(request_json.get('messages', [])))
+        if prompt_size < 3000:
             target_model = PLANNER_MODEL
-            print(f"🧠 [PLANNER] Routing to {PLANNER_MODEL}")
+            print(f"🧠 [PLANNER] {PLANNER_MODEL}")
         else:
             target_model = EXECUTOR_MODEL
-            print(f"💪 [EXECUTOR] Routing to {EXECUTOR_MODEL}")
+            print(f"💪 [EXECUTOR] {EXECUTOR_MODEL}")
             
         request_json['model'] = target_model
         

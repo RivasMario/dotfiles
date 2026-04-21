@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+import sys
+import subprocess
+import os
+
+# Colors
+CYAN = "\033[96m"
+BLUE = "\033[94m"
+MAGENTA = "\033[95m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+def print_banner():
+    os.system('clear')
+    print(f"{BOLD}{CYAN}╭──────────────────────────────────────────────────────────╮{RESET}")
+    print(f"{BOLD}{CYAN}│                                                          │{RESET}")
+    print(f"{BOLD}{CYAN}│   ⚡ CLAW: AUTONOMOUS LOCAL AGENT (v2.0 - DUAL BRAIN)    │{RESET}")
+    print(f"{BOLD}{CYAN}│                                                          │{RESET}")
+    print(f"{BOLD}{CYAN}╰──────────────────────────────────────────────────────────╯{RESET}")
+    print(f"{BOLD}{BLUE}    Router:    Enabled (Port 11435){RESET}")
+    print(f"{BOLD}{BLUE}    Execution: Autonomous Terminal Access{RESET}")
+    print(f"{MAGENTA}    ----------------------------------------------------{RESET}\n")
+
+if __name__ == "__main__":
+    print_banner()
+    # Pass all arguments to the actual claw binary
+    # We use the environment variables that we previously set in .zshrc
+    env = os.environ.copy()
+    env["OPENAI_BASE_URL"] = "http://127.0.0.1:11435/v1"
+    env["OPENAI_API_KEY"] = "ollama"
+    
+    cmd = [os.environ.get("CLAW_BINARY", "/workspaces/claw-code-local/rust/target/release/claw")]
+    if len(sys.argv) > 1:
+        cmd.extend(sys.argv[1:])
+    else:
+        cmd.append("--help") # Show help if no mission provided
+        
+    try:
+        subprocess.run(cmd, env=env)
+    except KeyboardInterrupt:
+        print(f"\n{RED}Claw terminated by user.{RESET}")
