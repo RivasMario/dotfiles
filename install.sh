@@ -25,11 +25,11 @@ if [ -z "$SKIP_PACKAGES" ]; then
     echo "==> Installing packages..."
     if command -v dnf &>/dev/null; then
         sudo dnf install -y \
-            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd libsecret tailscale
+            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd libsecret tailscale sshpass
     elif command -v apt-get &>/dev/null; then
         sudo apt-get update
         sudo apt-get install -y \
-            tmux zsh fzf git curl nodejs npm python3 libsecret-1-0 || true
+            tmux zsh fzf git curl nodejs npm python3 libsecret-1-0 sshpass || true
         # fastfetch and lsd not in standard apt repos — install separately
         if ! command -v fastfetch &>/dev/null; then
             FASTFETCH_DEB=$(mktemp --suffix=.deb)

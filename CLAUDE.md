@@ -42,9 +42,10 @@ The workspace uses a **Split-Brain** strategy (Planner 3B / Executor 7B) to prot
 
 ### Commands for AI Tasks:
 - **`diddy drone`**: Launch an interactive autonomous session.
+- **`claw "task"`**: Launch the protocol-first autonomous coding assistant (v6.1 - Rich).
+- **`claw --drone`**: Launch an interactive autonomous session.
 - **`diddy jipoe "task"`**: Generate a `MISSION_PACKET.md` course-of-action plan.
 - **`diddy execute --coa 1`**: Execute Course of Action 1 from the packet.
-- **`claw "task"`**: Launch the protocol-first autonomous coding assistant.
 - **`brain-router`**: Must be running in background (Port 11435) to handle 3B/7B routing.
 
 ### Hardware-Safe Context:

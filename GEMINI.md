@@ -107,7 +107,7 @@ The workspace now features a custom, high-performance AI agent suite optimized f
 
 ### Tools in `dotfiles/bin/`
 - **`diddy`**: The primary action agent. Supports `jipoe` (planning), `execute` (tactical action), and `drone` (interactive autonomous session) modes. Aligned with Navy JIPOE doctrine.
-- **`claw`**: A high-end, protocol-first autonomous agent for repository work. Native Python implementation with a visually distinct "Claw" terminal.
+- **`claw`**: A high-end, protocol-first autonomous agent for repository work (v6.1 - Rich). Supports single missions and `--drone` interactive mode. Uses `rich` for a visually distinct terminal.
 - **`brain-router`**: A background proxy (Port 11435) that automatically routes small requests to the 3B model and large context/code tasks to the 7B model.
 
 ### VRAM & Hardware Notes

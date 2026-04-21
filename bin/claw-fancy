@@ -5,144 +5,170 @@ import sys
 import os
 import re
 import time
+import argparse
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.table import Table
 
-# OLLAMA CONFIG
+# CONFIG
 OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
-PROXY = "127.0.0.1:1055"
+DEFAULT_PROXY = "127.0.0.1:1055"
 PLANNER = "llama3.2:3b"
 EXECUTOR = "qwen2.5-coder:7b"
+MAX_CONTEXT = 4096
+PVE_IP = "100.70.69.28"
+NAS_IP = "100.81.194.15"
 
-# COLORS
-CYAN = "\033[96m"
-BLUE = "\033[94m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-MAGENTA = "\033[95m"
-RED = "\033[91m"
-BOLD = "\033[1m"
-RESET = "\033[0m"
+console = Console()
 
-def print_banner():
-    os.system('clear')
-    print(f"{BOLD}{CYAN}╭──────────────────────────────────────────────────────────╮{RESET}")
-    print(f"{BOLD}{CYAN}│   ⚡ CLAW: AUTONOMOUS LOCAL AGENT (v5.0 - DUAL BRAIN)    │{RESET}")
-    print(f"{BOLD}{CYAN}╰──────────────────────────────────────────────────────────╯{RESET}")
-    print(f"    Target:  {os.getcwd()}")
-    print(f"    Brains:  {PLANNER} (Plan) | {EXECUTOR} (Code)")
-    print(f"{CYAN}    ----------------------------------------------------{RESET}\n")
+def check_proxy():
+    try:
+        res = subprocess.run(["curl", "-s", "-o", "/dev/null", "--connect-timeout", "1", f"http://{NAS_IP}:30068/api/tags"], capture_output=True)
+        if res.returncode == 0: return None
+    except: pass
+    try:
+        res = subprocess.run(["curl", "-s", "-o", "/dev/null", "--socks5-hostname", DEFAULT_PROXY, "--connect-timeout", "1", f"http://{NAS_IP}:30068/api/tags"], capture_output=True)
+        if res.returncode == 0: return DEFAULT_PROXY
+    except: pass
+    return None
+
+ACTIVE_PROXY = check_proxy()
 
 def ask(model, messages, stream=False):
     data = json.dumps({
-        "model": model,
-        "messages": messages,
-        "stream": stream,
-        "keep_alive": 0,
-        "options": {"num_ctx": 4096, "temperature": 0.0} # Temp 0 for protocol adherence
+        "model": model, "messages": messages, "stream": stream, "keep_alive": 0,
+        "options": {"num_ctx": MAX_CONTEXT, "temperature": 0.0}
     })
-    cmd = ["curl", "-s", "-N", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
+    cmd = ["curl", "-s", "-N"]
+    if ACTIVE_PROXY: cmd += ["--socks5-hostname", ACTIVE_PROXY]
+    cmd += ["-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
     
     if not stream:
         result = subprocess.run(cmd, capture_output=True, text=True)
-        try: 
-            return json.loads(result.stdout).get("message", {}).get("content", "")
-        except: 
-            return f"Error: {result.stdout}"
+        try: return json.loads(result.stdout).get("message", {}).get("content", "")
+        except: return f"Error: {result.stdout}"
     else:
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
-        content = ""
-        for line in process.stdout:
-            if line.strip():
-                try:
-                    chunk = json.loads(line)
-                    piece = chunk.get("message", {}).get("content", "")
-                    content += piece
-                    print(piece, end="", flush=True)
-                except: pass
-        return content
+        def generate():
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
+            try:
+                for line in process.stdout:
+                    if line.strip():
+                        try:
+                            chunk = json.loads(line)
+                            yield chunk.get("message", {}).get("content", "")
+                        except: pass
+            finally:
+                process.terminate()
+        return generate()
 
-def execute_cmd(cmd):
-    # Sanitize command
-    cmd = cmd.strip().strip('"').strip('`')
-    print(f"\n{BOLD}{MAGENTA} ⚙️  Executing:{RESET} {cmd}")
+def execute_cmd(action_line):
+    match = re.match(r'ACTION:\s*(\w+)\s*"(.*)"', action_line, re.IGNORECASE)
+    if match: tool, cmd = match.groups()
+    else:
+        tool = "run_local"; cmd = action_line.replace("ACTION:", "").strip().strip('"').strip('`')
+
+    console.print(f"\n[bold magenta]⚙️  Executing {tool}:[/bold magenta] [cyan]{cmd}[/cyan]")
     try:
-        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-        output = (res.stdout + res.stderr).strip()
-        return output if output else "[Success: Command completed with no output]"
-    except Exception as e:
-        return f"Error: {str(e)}"
+        if tool.lower() == "run_local":
+            res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+            output = (res.stdout + res.stderr).strip()
+        elif tool.lower() == "ssh_pve":
+            ssh = ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", f"root@{PVE_IP}", cmd]
+            if ACTIVE_PROXY:
+                ssh.insert(2, "-o"); ssh.insert(3, f"ProxyCommand=ncat --proxy {ACTIVE_PROXY} --proxy-type socks5 %h %p")
+            res = subprocess.run(ssh, capture_output=True, text=True, timeout=120)
+            output = (res.stdout + res.stderr).strip()
+        elif tool.lower() == "ssh_truenas":
+            ssh = ["sshpass", "-p", "crispypond211", "ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", f"nasuser@{NAS_IP}", cmd]
+            if ACTIVE_PROXY:
+                ssh.insert(4, "-o"); ssh.insert(5, f"ProxyCommand=ncat --proxy {ACTIVE_PROXY} --proxy-type socks5 %h %p")
+            res = subprocess.run(ssh, capture_output=True, text=True, timeout=120)
+            output = (res.stdout + res.stderr).strip()
+        else: output = f"Error: Unknown tool {tool}"
+        return output if output else "[Success]"
+    except Exception as e: return f"Error: {str(e)}"
 
-def main():
-    print_banner()
-    if len(sys.argv) < 2:
-        print(f"{YELLOW}Usage: claw \"your mission\"{RESET}")
-        return
+def run_agent_turn(user_input, session_history):
+    # 1. ANALYZE with Planner
+    planner_sys = (
+        "You are a Senior Systems Engineer. NEVER simulate or hallucinate results.\n"
+        "Plan REAL terminal commands (ip, ls, nmap, etc.) to gather facts.\n"
+        "If a tool is likely missing, plan to check for it (`which tool`) and ask to install it if needed.\n"
+        "Be extremely concise. No jargon."
+    )
+    plan = ask(PLANNER, [{"role": "system", "content": planner_sys}] + session_history + [{"role": "user", "content": user_input}])
+    console.print(Panel(Text(plan), title="[bold green]Intelligence Analyst (3B)[/bold green]", border_style="green"))
 
-    mission = " ".join(sys.argv[1:])
-    
-    # 1. PLANNING
-    print(f"{BOLD}{GREEN} 🧠 Planning Strategy...{RESET}")
-    planner_sys = "You are a Technical Lead. Provide a 3-step numbered list of shell commands needed to solve the mission. No explanation."
-    plan = ask(PLANNER, [
-        {"role": "system", "content": planner_sys},
-        {"role": "user", "content": mission}
-    ])
-    print(f"{CYAN} Strategy:{RESET} {plan.replace('\n', ' ')}")
-
-    # 2. TACTICAL EXECUTION
-    print(f"{BOLD}{BLUE} 🚀 Initiating Autonomous Protocol...{RESET}")
-    
-    # The "Force" System Prompt - extremely strict
+    # 2. Tactical Execution Loop (HITL capable)
     exec_sys = (
-        "You are a Terminal Executor. You solve tasks ONLY by running bash commands.\n"
+        "You are a Terminal Executor. Use bash commands to solve the goal.\n"
         "PROTOCOL:\n"
-        "1. Start with THOUGHT: <your reasoning>\n"
-        "2. Output ACTION: <bash command>\n"
+        "1. Start with THOUGHT: reasoning\n"
+        "2. Output ACTION: <tool> \"<cmd>\"\n"
+        "   OR: PROMPT: \"<question for user>\"\n"
+        "   Tools: run_local, ssh_pve, ssh_truenas\n"
         "3. Wait for result.\n"
-        "4. Repeat until done.\n"
-        "5. End with FINISHED.\n\n"
-        "NEVER describe what you will do. Just run the command.\n"
-        f"Goal: {mission}\n"
-        f"Steps: {plan}"
+        "4. End with FINISHED.\n\n"
+        "If you need to install software, you MUST use PROMPT: to ask for permission first.\n"
+        "Example: PROMPT: \"nmap is missing. May I install it via dnf?\""
     )
     
-    history = [{"role": "system", "content": exec_sys}]
+    current_history = [{"role": "system", "content": exec_sys}] + session_history + [{"role": "user", "content": f"User: {user_input}\nPlan: {plan}"}]
     
-    for i in range(8):
-        # We add the mission as a reminder every time
-        current_prompt = history + [{"role": "user", "content": "Proceed with the next command in the plan. Format: ACTION: <cmd>"}]
-        resp = ask(EXECUTOR, current_prompt)
-        
-        # Log the model's raw thought for debugging
+    for i in range(10):
+        with console.status(f"[bold blue]Turn {i+1}: Thinking...") as status:
+            resp = ask(EXECUTOR, current_history)
+            
         if "THOUGHT:" in resp:
-            thought = resp.split("ACTION:")[0].replace("THOUGHT:", "").strip()
-            print(f"{CYAN} Thought:{RESET} {thought[:80]}...")
+            thought = resp.split("ACTION:")[0].split("PROMPT:")[0].replace("THOUGHT:", "").strip()
+            console.print(Panel(Text(thought), title="[bold cyan]Thought[/bold cyan]", border_style="cyan"))
 
-        # Parse Action
+        if "PROMPT:" in resp:
+            prompt_text = resp.split("PROMPT:")[1].strip().strip('"')
+            console.print(f"\n[bold yellow]❓ {prompt_text}[/bold yellow]")
+            user_reply = console.input(f"[bold green]Reply > [/bold green]").strip()
+            current_history.append({"role": "assistant", "content": resp})
+            current_history.append({"role": "user", "content": f"USER REPLY: {user_reply}"})
+            continue
+
         if "ACTION:" in resp:
-            # Extract everything after ACTION: until the end of the line or next label
-            cmd_part = resp.split("ACTION:")[1].split("\n")[0].strip()
-            # Clean up markdown code blocks if the model used them
-            cmd_part = re.sub(r'```[a-z]*', '', cmd_part).replace('```', '').strip()
-            
-            observation = execute_cmd(cmd_part)
-            print(f"{BLUE} Output:{RESET} {observation[:120]}...")
-            
-            history.append({"role": "assistant", "content": resp})
-            history.append({"role": "user", "content": f"RESULT: {observation}"})
+            action_line = [l for l in resp.split('\n') if "ACTION:" in l][0]
+            observation = execute_cmd(action_line)
+            obs_display = observation if len(observation) < 800 else observation[:800] + "... [TRUNCATED]"
+            console.print(Panel(Text(obs_display), title="[bold magenta]Observation[/bold magenta]", border_style="magenta"))
+            current_history.append({"role": "assistant", "content": resp})
+            current_history.append({"role": "user", "content": f"RESULT: {observation}"})
         elif "FINISHED" in resp.upper() or "DONE" in resp.upper():
             break
-        else:
-            # If it's just talking, force it back into the lane
-            history.append({"role": "assistant", "content": resp})
-            history.append({"role": "user", "content": "ERROR: You must use the ACTION: <cmd> format. Do not summarize yet."})
+            
+    # 3. Final Briefing
+    session_history.append({"role": "user", "content": user_input})
+    final_resp = ""
+    console.print(f"\n[bold green]✨ Response:[/bold green]")
+    brief_sys = "Summarize the work done. Be precise. If results were found, present them clearly."
+    for piece in ask(PLANNER, [{"role": "system", "content": brief_sys}] + session_history + [{"role": "user", "content": "Provide final executive summary."}], stream=True):
+        console.print(piece, end="")
+        final_resp += piece
+    console.print()
+    session_history.append({"role": "assistant", "content": final_resp})
 
-    # 3. FINAL BRIEFING
-    print(f"\n{BOLD}{GREEN} ✨ Mission Summary:{RESET}")
-    polisher_sys = "You are a professional assistant. Briefly state that the mission is complete based on the logs."
-    ask(PLANNER, [
-        {"role": "system", "content": polisher_sys},
-        {"role": "user", "content": f"MISSION: {mission}"}
-    ], stream=True)
-    print()
+def main():
+    parser = argparse.ArgumentParser(description="CLAW: Human-in-the-Loop Agent")
+    parser.add_argument("mission", nargs="?", help="Mission to execute")
+    args = parser.parse_args()
+    os.system('clear')
+    banner = Text("⚡ CLAW: HUMAN-IN-THE-LOOP (v8.0)", style="bold cyan")
+    console.print(Panel(banner, border_style="cyan", subtitle=f"Brains: {PLANNER} | {EXECUTOR}"))
+    session_history = []
+    if args.mission: run_agent_turn(args.mission, session_history)
+    console.print(f"\n[bold yellow]Interactive session active. Type 'exit' to quit.[/bold yellow]")
+    while True:
+        try:
+            user_input = console.input(f"\n[bold green]User > [/bold green]").strip()
+            if not user_input: continue
+            if user_input.lower() in ['exit', 'quit', 'q']: break
+            run_agent_turn(user_input, session_history)
+        except (KeyboardInterrupt, EOFError): break
 
 if __name__ == "__main__": main()

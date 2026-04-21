@@ -42,6 +42,21 @@ cd ~/dotfiles && bash install.sh
 exec zsh
 ```
 
+## Split-Brain Agent Suite (2026-04-21)
+
+High-performance, protocol-first AI agents optimized for 8GB VRAM (RTX 3060 Ti). These use a **Dual-Brain** strategy: a fast 3B model for planning and a deep 7B model for execution.
+
+| Tool | Purpose |
+|------|---------|
+| `claw` | Protocol-first autonomous coding assistant (v6.0 - Rich) |
+| `diddy` | Tactical Navy-inspired agent (planning + execution) |
+| `brain-router` | Background proxy (Port 11435) for automatic model routing |
+
+**Usage:**
+- `claw "Fix the bug in installer.sh"`
+- `diddy drone` (interactive session)
+- `brain-router` (must be running in background for `aider` integration)
+
 ## Requires
 
 - **Windows:** winget, Git for Windows (bash), PowerShell 5+

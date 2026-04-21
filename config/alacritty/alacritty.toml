@@ -1,0 +1,133 @@
+# =============================================================================
+# ALACRITTY CONFIG — ~/.config/alacritty/alacritty.toml
+# Monokai theme — matches tmux.conf colors exactly
+# =============================================================================
+
+[env]
+TERM = "alacritty"
+
+# -----------------------------------------------------------------------------
+# WINDOW
+# -----------------------------------------------------------------------------
+[window]
+padding = { x = 8, y = 8 }
+decorations = "full"
+opacity = 1.0
+title = "Alacritty"
+dynamic_title = true
+
+# -----------------------------------------------------------------------------
+# SCROLLBACK — matches tmux history-limit 10000
+# -----------------------------------------------------------------------------
+[scrolling]
+history = 10000
+multiplier = 3
+
+# -----------------------------------------------------------------------------
+# FONT
+# Change family to match your installed Nerd Font if needed.
+# -----------------------------------------------------------------------------
+[font]
+normal  = { family = "JetBrainsMono Nerd Font", style = "Regular" }
+bold    = { family = "JetBrainsMono Nerd Font", style = "Bold" }
+italic  = { family = "JetBrainsMono Nerd Font", style = "Italic" }
+size    = 13.0
+
+# -----------------------------------------------------------------------------
+# COLORS — Monokai (bg=#272822  fg=#F8F8F2)
+# Matches tmux status/pane/copy-mode colors exactly.
+# -----------------------------------------------------------------------------
+[colors.primary]
+background = "#272822"
+foreground = "#F8F8F2"
+
+[colors.cursor]
+text   = "#272822"
+cursor = "#F8F8F2"
+
+[colors.vi_mode_cursor]
+text   = "#272822"
+cursor = "#F92672"  # Monokai pink — same as tmux pane-active-border
+
+[colors.selection]
+text       = "CellForeground"
+background = "#49483E"  # tmux mode-style bg
+
+[colors.search.matches]
+foreground = "#272822"
+background = "#E6DB74"  # Monokai yellow
+
+[colors.search.focused_match]
+foreground = "#272822"
+background = "#F92672"  # Monokai pink
+
+[colors.normal]
+black   = "#272822"
+red     = "#F92672"  # Monokai pink
+green   = "#A6E22E"  # Monokai green
+yellow  = "#E6DB74"  # Monokai yellow
+blue    = "#66D9EF"  # Monokai cyan
+magenta = "#AE81FF"  # Monokai purple
+cyan    = "#66D9EF"
+white   = "#F8F8F2"
+
+[colors.bright]
+black   = "#75715E"  # Monokai comment
+red     = "#F92672"
+green   = "#A6E22E"
+yellow  = "#E6DB74"
+blue    = "#66D9EF"
+magenta = "#AE81FF"
+cyan    = "#66D9EF"
+white   = "#F8F8F2"
+
+# -----------------------------------------------------------------------------
+# CURSOR
+# -----------------------------------------------------------------------------
+[cursor]
+style       = { shape = "Block", blinking = "On" }
+blink_interval = 500
+unfocused_hollow = true
+
+# -----------------------------------------------------------------------------
+# MOUSE — matches tmux `set -g mouse on`
+# -----------------------------------------------------------------------------
+[mouse]
+hide_when_typing = false
+
+# -----------------------------------------------------------------------------
+# SELECTION — auto-copy like tmux MouseDragEnd1Pane
+# -----------------------------------------------------------------------------
+[selection]
+save_to_clipboard = false  # use explicit Ctrl+Shift+C; set true for tmux-style auto-copy
+
+# -----------------------------------------------------------------------------
+# TERMINAL — OSC 52 clipboard passthrough (matches tmux set-clipboard on + wl-copy)
+# -----------------------------------------------------------------------------
+[terminal]
+osc52 = "CopyPaste"
+
+# -----------------------------------------------------------------------------
+# KEYBOARD BINDINGS
+# Mirrors tmux copy-mode vi keys and window navigation feel.
+# -----------------------------------------------------------------------------
+[keyboard]
+bindings = [
+  # Copy / Paste (Ctrl+Shift+C/V — standard terminal convention)
+  { key = "C", mods = "Control|Shift", action = "Copy" },
+  { key = "V", mods = "Control|Shift", action = "Paste" },
+
+  # Vi mode — Ctrl+Shift+Space toggles (like tmux Ctrl+a [)
+  { key = "Space", mods = "Control|Shift", action = "ToggleViMode" },
+
+  # Scrolling — matches tmux Page Up/Down behavior
+  { key = "PageUp",   mods = "Shift", action = "ScrollPageUp" },
+  { key = "PageDown", mods = "Shift", action = "ScrollPageDown" },
+  { key = "Home",     mods = "Shift", action = "ScrollToTop" },
+  { key = "End",      mods = "Shift", action = "ScrollToBottom" },
+
+  # Font size
+  { key = "Plus",  mods = "Control", action = "IncreaseFontSize" },
+  { key = "Minus", mods = "Control", action = "DecreaseFontSize" },
+  { key = "Key0",  mods = "Control", action = "ResetFontSize" },
+]
