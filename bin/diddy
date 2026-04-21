@@ -4,11 +4,12 @@ import subprocess
 import sys
 import os
 import re
+import argparse
 
 OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
 PROXY = "127.0.0.1:1055"
-IS_MODEL = "llama3.2:3b"
-CT_MODEL = "qwen2.5-coder:7b"
+PLANNER_MODEL = "llama3.2:3b"
+EXECUTOR_MODEL = "qwen2.5-coder:7b"
 
 # Network Hardware
 PVE_IP = "100.70.69.28"
@@ -16,218 +17,129 @@ NAS_IP = "100.81.194.15"
 
 # HARD VRAM LIMITS (RTX 3060 Ti - 8GB)
 MAX_CONTEXT_TOKENS = 4096
-SAFE_HISTORY_WORD_LIMIT = 2000 
-DANGER_ZONE_TOKENS = 3500 
 
-# Colors for CLI
+# Files
+PLAN_FILE = "MISSION_PLAN.md"
+LOG_FILE = "MISSION_LOG.md"
+
+# Colors
 BLUE = "\033[94m"
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
 RED = "\033[91m"
-MAGENTA = "\033[95m"
 CYAN = "\033[96m"
-RESET = "\033[0m"
 BOLD = "\033[1m"
+RESET = "\033[0m"
 
 def get_env_context():
-    """Detect current environment details dynamically."""
     import platform
-    os_name = platform.system()
-    hostname = platform.node()
-    cwd = os.getcwd()
-    
-    if os.environ.get("CODESPACES") == "true":
-        env_type = "GitHub Codespace"
-    elif "fedora" in platform.version().lower() or os.path.exists("/etc/fedora-release"):
-        env_type = "Fedora Linux"
-    elif os_name == "Windows":
-        env_type = "Windows PC"
-    else:
-        env_type = f"{os_name} Machine"
-        
-    return {
-        "type": env_type,
-        "hostname": hostname,
-        "cwd": cwd,
-        "os": os_name
-    }
+    return f"OS: {platform.system()} | Host: {platform.node()} | CWD: {os.getcwd()}"
 
-def print_header():
-    env = get_env_context()
-    print(f"{BOLD}{BLUE}======================================================{RESET}")
-    print(f"{BOLD}{BLUE}🤖 DIDDY: AUTONOMOUS ASSISTANT 🤖{RESET}")
-    print(f"Environment:             {env['type']} ({env['hostname']})")
-    print(f"Location:                {env['cwd']}")
-    print(f"VRAM Protection:         Active ({MAX_CONTEXT_TOKENS} ctx)")
-    print(f"{BOLD}{BLUE}======================================================{RESET}\n")
-
-def estimate_tokens(text):
-    return int(len(str(text).split()) * 1.3)
-
-def enforce_vram_limit(chat_history):
-    while chat_history:
-        text = " ".join([m.get("content", "") for m in chat_history])
-        if len(text.split()) > SAFE_HISTORY_WORD_LIMIT:
-            if len(chat_history) >= 2:
-                chat_history.pop(0)
-                chat_history.pop(0)
-            else:
-                chat_history.pop(0)
-        else:
-            break
-
-def execute_tool(action_line):
-    """
-    Parses and executes a tool command. 
-    Format: ACTION: tool_name "command"
-    Tools: run_local, ssh_pve, ssh_truenas
-    """
-    try:
-        match = re.match(r'ACTION:\s*(\w+)\s*"(.*)"', action_line, re.IGNORECASE)
-        if not match:
-            return "Error: Invalid action format. Use: ACTION: tool_name \"command\""
-        
-        tool, cmd = match.groups()
-        tool = tool.lower()
-        
-        print(f"\n{BOLD}{MAGENTA}[Executing {tool}]{RESET} {cmd}")
-        
-        if tool == "run_local":
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
-            return (result.stdout + result.stderr).strip()
-        
-        elif tool == "ssh_pve":
-            ssh_cmd = [
-                "ssh", "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p",
-                "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5",
-                f"root@{PVE_IP}", cmd
-            ]
-            result = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=30)
-            return (result.stdout + result.stderr).strip()
-            
-        elif tool == "ssh_truenas":
-            ssh_cmd = [
-                "sshpass", "-p", "crispypond211", "ssh", 
-                "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p",
-                "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5",
-                f"nasuser@{NAS_IP}", cmd
-            ]
-            result = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=30)
-            return (result.stdout + result.stderr).strip()
-        
-        else:
-            return f"Error: Unknown tool '{tool}'. Available: run_local, ssh_pve, ssh_truenas"
-            
-    except Exception as e:
-        return f"Execution Error: {str(e)}"
-
-def ask_ollama(model, messages, stream=False, system_msg=None):
-    payload_messages = []
-    # Dynamic Environment Context
-    env = get_env_context()
-    env_context = f"You are running on a {env['type']} (Hostname: {env['hostname']}) in the directory: {env['cwd']}. "
-    env_context += "You have access to local tools and home network hosts via SSH (Proxmox, TrueNAS)."
-    
-    if system_msg:
-        payload_messages.append({"role": "system", "content": f"{env_context} {system_msg}"})
-    else:
-        payload_messages.append({"role": "system", "content": env_context})
-    
-    payload_messages.extend(messages)
-    
+def ask_ollama(model, system, prompt):
     data = json.dumps({
         "model": model,
-        "messages": payload_messages,
-        "stream": stream,
+        "messages": [
+            {"role": "system", "content": f"{get_env_context()} {system}"},
+            {"role": "user", "content": prompt}
+        ],
+        "stream": False,
         "keep_alive": 0,
         "options": {"num_ctx": MAX_CONTEXT_TOKENS}
     })
+    cmd = ["curl", "-s", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        return json.loads(result.stdout).get("message", {}).get("content", "")
+    except:
+        return f"Error: {result.stdout}"
+
+def execute_tool(action_line):
+    match = re.match(r'ACTION:\s*(\w+)\s*"(.*)"', action_line, re.IGNORECASE)
+    if not match: return "Error: Invalid action format."
+    tool, cmd = match.groups()
+    print(f"{BOLD}{BLUE}[Executing {tool}]{RESET} {cmd}")
     
-    cmd = [
-        "curl", "-s", "-N", "--socks5-hostname", PROXY,
-        "-H", "Content-Type: application/json",
-        "-d", data, OLLAMA_URL
-    ]
+    if tool.lower() == "run_local":
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return (res.stdout + res.stderr).strip()
+    elif tool.lower() == "ssh_pve":
+        ssh = ["ssh", "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p", "-o", "StrictHostKeyChecking=no", f"root@{PVE_IP}", cmd]
+        res = subprocess.run(ssh, capture_output=True, text=True)
+        return (res.stdout + res.stderr).strip()
+    elif tool.lower() == "ssh_truenas":
+        ssh = ["sshpass", "-p", "crispypond211", "ssh", "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p", "-o", "StrictHostKeyChecking=no", f"nasuser@{NAS_IP}", cmd]
+        res = subprocess.run(ssh, capture_output=True, text=True)
+        return (res.stdout + res.stderr).strip()
+    return "Unknown tool."
+
+def cmd_plan(mission):
+    print(f"{BOLD}{GREEN}📝 PLANNER LANE (IS) ACTIVE{RESET}")
+    sys_prompt = "You are a Planner. Create a strict, step-by-step markdown plan to solve the user's mission. Identify which files need to be checked and which hosts (local, PVE, TrueNAS) need to be accessed. Output ONLY the markdown plan."
+    plan = ask_ollama(PLANNER_MODEL, sys_prompt, mission)
+    with open(PLAN_FILE, "w") as f:
+        f.write(plan)
+    print(f"\n{BOLD}Plan generated and saved to {PLAN_FILE}{RESET}\n{plan}")
+
+def cmd_act():
+    if not os.path.exists(PLAN_FILE):
+        print(f"{RED}Error: No {PLAN_FILE} found. Run 'diddy plan' first.{RESET}")
+        return
     
-    if not stream:
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0: return f"Error: {result.stderr}"
-        try:
-            return json.loads(result.stdout).get("message", {}).get("content", "")
-        except: return "Error decoding API response."
-    else:
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
-        full_content = ""
-        for line in process.stdout:
-            if line.strip():
-                try:
-                    chunk = json.loads(line)
-                    if "message" in chunk and "content" in chunk["message"]:
-                        piece = chunk["message"]["content"]
-                        full_content += piece
-                        print(piece, end="", flush=True)
-                except: pass
-        print()
-        return full_content
+    print(f"{BOLD}{YELLOW}🔧 EXECUTOR LANE (CT) ACTIVE{RESET}")
+    with open(PLAN_FILE, "r") as f:
+        plan = f.read()
+
+    # Simple execution loop
+    history = [{"role": "system", "content": f"Execute this plan: {plan}. Use format THOUGHT: reason, ACTION: tool_name \"cmd\". Tools: run_local, ssh_pve, ssh_truenas. Limit 5 steps. End with REPORT: summary."}]
+    
+    log_content = ""
+    for i in range(5):
+        data = json.dumps({"model": EXECUTOR_MODEL, "messages": history, "stream": False, "keep_alive": 0})
+        cmd = ["curl", "-s", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", data, OLLAMA_URL]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        resp = json.loads(res.stdout).get("message", {}).get("content", "")
+        
+        print(f"\n{CYAN}--- Step {i+1} ---{RESET}\n{resp}")
+        log_content += f"\nStep {i+1}:\n{resp}\n"
+        
+        if "REPORT:" in resp: break
+        if "ACTION:" in resp:
+            action_line = [l for l in resp.split("\n") if "ACTION:" in l][0]
+            obs = execute_tool(action_line)
+            print(f"{BLUE}RESULT:{RESET} {obs[:200]}...")
+            log_content += f"RESULT: {obs}\n"
+            history.append({"role": "assistant", "content": resp})
+            history.append({"role": "user", "content": f"OBSERVATION: {obs}"})
+        else: break
+    
+    with open(LOG_FILE, "w") as f:
+        f.write(log_content)
+    print(f"\n{BOLD}Execution log saved to {LOG_FILE}{RESET}")
+
+def cmd_brief():
+    if not os.path.exists(LOG_FILE):
+        print(f"{RED}Error: No {LOG_FILE} found. Run 'diddy act' first.{RESET}")
+        return
+    print(f"{BOLD}{GREEN}🎖️  BRIEFING LANE (IS) ACTIVE{RESET}")
+    with open(LOG_FILE, "r") as f: log = f.read()
+    sys_prompt = "You are a senior analyst. Summarize the raw technical logs into a professional BLUF (Bottom Line Up Front) brief for the CO."
+    brief = ask_ollama(PLANNER_MODEL, sys_prompt, log)
+    print(f"\n{BOLD}BLUF:{RESET}\n{brief}")
 
 def main():
-    print_header()
-    chat_history = []
+    parser = argparse.ArgumentParser(description="Diddy: Split-Brain Navy Agent")
+    subparsers = parser.add_subparsers(dest="command")
     
-    while True:
-        try:
-            mission = input(f"{BOLD}{YELLOW}Mission > {RESET}").strip()
-            if not mission: continue
-            if mission.lower() in ['exit', 'quit', 'q']: break
-            
-            approx_tokens = estimate_tokens(mission)
-            if approx_tokens > DANGER_ZONE_TOKENS:
-                print(f"\n{BOLD}{RED}⚠️  VRAM OVERFLOW RISK{RESET}")
-                if input(f"{YELLOW}Proceed? (y/N): {RESET}").strip().lower() not in ['y', 'yes']: continue
-                
-            print(f"\n{GREEN}[Planner]{RESET} analyzing mission...")
-            temp_history = chat_history + [{"role": "user", "content": mission}]
-            
-            is_plan_sys = "Create a high-level technical plan. Break the mission into logical steps. Do not write code."
-            plan = ask_ollama(IS_MODEL, temp_history, system_msg=is_plan_sys)
-            print(f"\n{CYAN}PLAN:{RESET}\n{plan}\n")
-            
-            print(f"{BLUE}[Executor]{RESET} starting autonomous loop...")
-            ct_sys = f"The current plan is: {plan}. You are an autonomous agent. Use tools to execute the plan. You MUST use this format:\nTHOUGHT: reasoning\nACTION: tool_name \"command\"\nAvailable tools: run_local, ssh_pve, ssh_truenas. Loop until complete, then end with REPORT: final result."
-            ct_history = temp_history 
-            
-            # Agent Loop (Max 5 turns)
-            final_raw_result = ""
-            for i in range(5):
-                response = ask_ollama(CT_MODEL, ct_history, system_msg=ct_sys)
-                print(f"\n{BOLD}{BLUE}[Step {i+1}]{RESET}\n{response}")
-                
-                if "REPORT:" in response:
-                    final_raw_result = response.split("REPORT:")[1].strip()
-                    break
-                
-                if "ACTION:" in response:
-                    lines = response.split('\n')
-                    action_line = [l for l in lines if "ACTION:" in l][0]
-                    observation = execute_tool(action_line)
-                    print(f"{CYAN}RESULT:{RESET} {observation[:200]}..." if len(observation)>200 else f"{CYAN}RESULT:{RESET} {observation}")
-                    ct_history.append({"role": "assistant", "content": response})
-                    ct_history.append({"role": "user", "content": f"OBSERVATION: {observation}"})
-                else:
-                    final_raw_result = response
-                    break
-            
-            print(f"\n{GREEN}[Assistant]{RESET} finalizing response:\n")
-            is_brief_sys = f"Summarize the technical work done. Provide a clear response to the user's mission.\n\nRAW DATA:\n{final_raw_result}"
-            final_brief = ask_ollama(IS_MODEL, temp_history, stream=True, system_msg=is_brief_sys)
-            
-            chat_history.append({"role": "user", "content": mission})
-            chat_history.append({"role": "assistant", "content": final_brief})
-            enforce_vram_limit(chat_history)
-            
-        except (KeyboardInterrupt, EOFError): break
-
-if __name__ == "__main__": main()
-
+    plan_parser = subparsers.add_parser("plan")
+    plan_parser.add_argument("mission", help="The goal of the mission")
+    
+    subparsers.add_parser("act")
+    subparsers.add_parser("brief")
+    
+    args = parser.parse_args()
+    if args.command == "plan": cmd_plan(args.mission)
+    elif args.command == "act": cmd_act()
+    elif args.command == "brief": cmd_brief()
+    else: parser.print_help()
 
 if __name__ == "__main__": main()
