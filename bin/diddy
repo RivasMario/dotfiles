@@ -3,36 +3,41 @@ import json
 import subprocess
 import sys
 import os
+import re
 
 OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
 PROXY = "127.0.0.1:1055"
 IS_MODEL = "llama3.2:3b"
 CT_MODEL = "qwen2.5-coder:7b"
 
+# Network Hardware
+PVE_IP = "100.70.69.28"
+NAS_IP = "100.81.194.15"
+
 # HARD VRAM LIMITS (RTX 3060 Ti - 8GB)
 MAX_CONTEXT_TOKENS = 4096
-SAFE_HISTORY_WORD_LIMIT = 2500 
-DANGER_ZONE_TOKENS = 3500 # Warn user if a single prompt gets close to the limit
+SAFE_HISTORY_WORD_LIMIT = 2000 
+DANGER_ZONE_TOKENS = 3500 
 
 # Colors for CLI
 BLUE = "\033[94m"
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
 RED = "\033[91m"
+MAGENTA = "\033[95m"
+CYAN = "\033[96m"
 RESET = "\033[0m"
 BOLD = "\033[1m"
 
 def print_header():
     print(f"{BOLD}{BLUE}======================================================{RESET}")
-    print(f"{BOLD}{BLUE}⚓ NAVY INTELLIGENCE TERMINAL ⚓{RESET}")
-    print(f"Intelligence Analyst (Planner/Review): {IS_MODEL}")
-    print(f"Cryptologic Technician (Coder/Analyst): {CT_MODEL}")
-    print(f"VRAM Protection:           Active (Max Context: {MAX_CONTEXT_TOKENS} tokens)")
+    print(f"{BOLD}{BLUE}🤖 DIDDY: AUTONOMOUS ASSISTANT 🤖{RESET}")
+    print(f"Environment:             GitHub Codespace (/workspaces/dotfiles)")
+    print(f"VRAM Protection:         Active ({MAX_CONTEXT_TOKENS} ctx)")
     print(f"{BOLD}{BLUE}======================================================{RESET}\n")
 
 def estimate_tokens(text):
-    """Rough heuristic: 1 word ~ 1.3 tokens"""
-    return int(len(text.split()) * 1.3)
+    return int(len(str(text).split()) * 1.3)
 
 def enforce_vram_limit(chat_history):
     while chat_history:
@@ -46,10 +51,60 @@ def enforce_vram_limit(chat_history):
         else:
             break
 
+def execute_tool(action_line):
+    """
+    Parses and executes a tool command. 
+    Format: ACTION: tool_name "command"
+    Tools: run_local, ssh_pve, ssh_truenas
+    """
+    try:
+        match = re.match(r'ACTION:\s*(\w+)\s*"(.*)"', action_line, re.IGNORECASE)
+        if not match:
+            return "Error: Invalid action format. Use: ACTION: tool_name \"command\""
+        
+        tool, cmd = match.groups()
+        tool = tool.lower()
+        
+        print(f"\n{BOLD}{MAGENTA}[Executing {tool}]{RESET} {cmd}")
+        
+        if tool == "run_local":
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+            return (result.stdout + result.stderr).strip()
+        
+        elif tool == "ssh_pve":
+            ssh_cmd = [
+                "ssh", "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p",
+                "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5",
+                f"root@{PVE_IP}", cmd
+            ]
+            result = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=30)
+            return (result.stdout + result.stderr).strip()
+            
+        elif tool == "ssh_truenas":
+            ssh_cmd = [
+                "sshpass", "-p", "crispypond211", "ssh", 
+                "-o", f"ProxyCommand=ncat --proxy {PROXY} --proxy-type socks5 %h %p",
+                "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5",
+                f"nasuser@{NAS_IP}", cmd
+            ]
+            result = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=30)
+            return (result.stdout + result.stderr).strip()
+        
+        else:
+            return f"Error: Unknown tool '{tool}'. Available: run_local, ssh_pve, ssh_truenas"
+            
+    except Exception as e:
+        return f"Execution Error: {str(e)}"
+
 def ask_ollama(model, messages, stream=False, system_msg=None):
     payload_messages = []
+    # Environment Context
+    env_context = "You are running in a GitHub Codespace at /workspaces/dotfiles. You have access to local tools and home network hosts via SSH (Proxmox, TrueNAS)."
     if system_msg:
-        payload_messages.append({"role": "system", "content": system_msg})
+        payload_messages.append({"role": "system", "content": f"{env_context} {system_msg}"})
+    else:
+        payload_messages.append({"role": "system", "content": env_context})
+    
     payload_messages.extend(messages)
     
     data = json.dumps({
@@ -57,9 +112,7 @@ def ask_ollama(model, messages, stream=False, system_msg=None):
         "messages": payload_messages,
         "stream": stream,
         "keep_alive": 0,
-        "options": {
-            "num_ctx": MAX_CONTEXT_TOKENS
-        }
+        "options": {"num_ctx": MAX_CONTEXT_TOKENS}
     })
     
     cmd = [
@@ -70,12 +123,10 @@ def ask_ollama(model, messages, stream=False, system_msg=None):
     
     if not stream:
         result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            return f"Error: {result.stderr}"
+        if result.returncode != 0: return f"Error: {result.stderr}"
         try:
             return json.loads(result.stdout).get("message", {}).get("content", "")
-        except json.JSONDecodeError:
-            return "Error decoding API response."
+        except: return "Error decoding API response."
     else:
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
         full_content = ""
@@ -87,8 +138,7 @@ def ask_ollama(model, messages, stream=False, system_msg=None):
                         piece = chunk["message"]["content"]
                         full_content += piece
                         print(piece, end="", flush=True)
-                except json.JSONDecodeError:
-                    pass
+                except: pass
         print()
         return full_content
 
@@ -99,49 +149,57 @@ def main():
     while True:
         try:
             mission = input(f"{BOLD}{YELLOW}Mission > {RESET}").strip()
-            if not mission:
-                continue
-            if mission.lower() in ['exit', 'quit', 'q']:
-                print(f"{BLUE}Disconnecting from terminal.{RESET}")
-                break
+            if not mission: continue
+            if mission.lower() in ['exit', 'quit', 'q']: break
             
-            # VRAM PROTECTION ALERT
             approx_tokens = estimate_tokens(mission)
             if approx_tokens > DANGER_ZONE_TOKENS:
-                print(f"\n{BOLD}{RED}⚠️  VRAM OVERFLOW RISK DETECTED ⚠️{RESET}")
-                print(f"{RED}Your input is approximately {approx_tokens} tokens.{RESET}")
-                print(f"{RED}The hard limit for your RTX 3060 Ti is {MAX_CONTEXT_TOKENS} tokens.{RESET}")
-                print(f"{RED}Proceeding will force Ollama to truncate the text or spill into slow system RAM.{RESET}")
-                choice = input(f"{YELLOW}Do you want to proceed and risk 5 tok/s speeds? (y/N): {RESET}").strip().lower()
-                if choice not in ['y', 'yes']:
-                    print(f"{BLUE}Mission aborted. Try breaking the repo/file into smaller chunks.{RESET}\n")
-                    continue
+                print(f"\n{BOLD}{RED}⚠️  VRAM OVERFLOW RISK{RESET}")
+                if input(f"{YELLOW}Proceed? (y/N): {RESET}").strip().lower() not in ['y', 'yes']: continue
                 
-            print(f"\n{GREEN}[Intelligence Analyst]{RESET} drafting plan...")
+            print(f"\n{GREEN}[Planner]{RESET} analyzing mission...")
             temp_history = chat_history + [{"role": "user", "content": mission}]
             
-            is_plan_sys = "You are an Intelligence Analyst. Read the user's mission and output a strict 3-step technical execution plan for the Cryptologic Technician (CT) to follow. Do not output code, just the numbered steps. Keep it brief."
-            plan = ask_ollama(IS_MODEL, temp_history, stream=False, system_msg=is_plan_sys)
+            is_plan_sys = "Create a high-level technical plan. Break the mission into logical steps. Do not write code."
+            plan = ask_ollama(IS_MODEL, temp_history, system_msg=is_plan_sys)
+            print(f"\n{CYAN}PLAN:{RESET}\n{plan}\n")
             
-            print(f"{BLUE}[Cryptologic Technician]{RESET} executing plan (deep work)...")
-            ct_sys = f"You are a Cryptologic Technician. The Intelligence Analyst provided this plan: {plan}. Execute it perfectly. Provide full raw code or analysis. Do not summarize, just do the raw technical work."
-            raw_intel = ask_ollama(CT_MODEL, temp_history, stream=False, system_msg=ct_sys)
+            print(f"{BLUE}[Executor]{RESET} starting autonomous loop...")
+            ct_sys = f"The current plan is: {plan}. You are an autonomous agent. Use tools to execute the plan. You MUST use this format:\nTHOUGHT: reasoning\nACTION: tool_name \"command\"\nAvailable tools: run_local, ssh_pve, ssh_truenas. Loop until complete, then end with REPORT: final result."
+            ct_history = temp_history 
             
-            print(f"{GREEN}[Intelligence Analyst]{RESET} briefing the CO (final polish):\n")
-            is_brief_sys = f"You are an Intelligence Analyst presenting to the Commanding Officer. You must format and polish the raw technical data provided by the Cryptologic Technician into a clean, professional, readable response. Do not say 'Here is the brief', just provide the polished response directly to the user.\n\nRAW DATA FROM CRYPTOLOGIC TECHNICIAN:\n{raw_intel}"
-
+            # Agent Loop (Max 5 turns)
+            final_raw_result = ""
+            for i in range(5):
+                response = ask_ollama(CT_MODEL, ct_history, system_msg=ct_sys)
+                print(f"\n{BOLD}{BLUE}[Step {i+1}]{RESET}\n{response}")
+                
+                if "REPORT:" in response:
+                    final_raw_result = response.split("REPORT:")[1].strip()
+                    break
+                
+                if "ACTION:" in response:
+                    lines = response.split('\n')
+                    action_line = [l for l in lines if "ACTION:" in l][0]
+                    observation = execute_tool(action_line)
+                    print(f"{CYAN}RESULT:{RESET} {observation[:200]}..." if len(observation)>200 else f"{CYAN}RESULT:{RESET} {observation}")
+                    ct_history.append({"role": "assistant", "content": response})
+                    ct_history.append({"role": "user", "content": f"OBSERVATION: {observation}"})
+                else:
+                    final_raw_result = response
+                    break
             
-            final_response = ask_ollama(IS_MODEL, temp_history, stream=True, system_msg=is_brief_sys)
-            print()
+            print(f"\n{GREEN}[Assistant]{RESET} finalizing response:\n")
+            is_brief_sys = f"Summarize the technical work done. Provide a clear response to the user's mission.\n\nRAW DATA:\n{final_raw_result}"
+            final_brief = ask_ollama(IS_MODEL, temp_history, stream=True, system_msg=is_brief_sys)
             
             chat_history.append({"role": "user", "content": mission})
-            chat_history.append({"role": "assistant", "content": final_response})
-            
+            chat_history.append({"role": "assistant", "content": final_brief})
             enforce_vram_limit(chat_history)
             
-        except (KeyboardInterrupt, EOFError):
-            print(f"\n{BLUE}Disconnecting from terminal.{RESET}")
-            break
+        except (KeyboardInterrupt, EOFError): break
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()
+
+
+if __name__ == "__main__": main()
