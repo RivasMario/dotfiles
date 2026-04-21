@@ -11,6 +11,7 @@ RUN dnf upgrade -y && \
     findutils \
     procps-ng \
     nodejs \
+    npm \
     zsh \
     python3 \
     tmux \
@@ -18,7 +19,6 @@ RUN dnf upgrade -y && \
     fastfetch \
     lsd \
     libsecret \
-    tailscale \
     && dnf clean all
 
 # Create the standard dev container user (vscode) with zsh as default shell

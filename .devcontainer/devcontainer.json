@@ -3,6 +3,19 @@
   "build": { 
     "dockerfile": "Dockerfile"
   },
+  "features": {
+    "ghcr.io/tailscale/codespace/tailscale": {
+      "version": "latest"
+    }
+  },
+  "capAdd": [
+    "CAP_NET_ADMIN",
+    "CAP_MKNOD",
+    "CAP_NET_RAW"
+  ],
+  "runArgs": [
+    "--device=/dev/net/tun"
+  ],
   "remoteUser": "vscode",
   "remoteEnv": { "SHELL": "/bin/zsh" },
   "customizations": {

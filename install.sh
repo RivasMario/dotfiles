@@ -155,9 +155,13 @@ fi
 if command -v tailscale &>/dev/null; then
     # Start daemon if not running
     if ! pgrep -x tailscaled &>/dev/null; then
-        if [ "$CODESPACES" = "true" ] || grep -qE 'docker|lxc' /proc/1/cgroup 2>/dev/null; then
-            # Container — userspace networking (no TUN device)
-            sudo tailscaled --tun=userspace-networking --socks5-server=localhost:1055 &>/dev/null &
+        if [ "$CODESPACES" = "true" ] || [ -f "/.dockerenv" ] || grep -qE 'docker|lxc|container' /proc/1/cgroup 2>/dev/null; then
+            # Container — use real TUN if available (devcontainer runArgs may provide it).
+            if [ -c /dev/net/tun ]; then
+                sudo tailscaled --socks5-server=localhost:1055 &>/dev/null &
+            else
+                sudo tailscaled --tun=userspace-networking --socks5-server=localhost:1055 &>/dev/null &
+            fi
             sleep 1
         elif command -v systemctl &>/dev/null; then
             sudo systemctl enable --now tailscaled 2>/dev/null || true

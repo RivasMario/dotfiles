@@ -53,8 +53,9 @@ The workspace uses a **Split-Brain** strategy (Planner 3B / Executor 7B) to prot
 - **VRAM Residency**: Keep models 100% on GPU. If upgraded to RTX 4080 (16GB), increase this limit to 16k+.
 - **Model Unloading**: All scripts use `keep_alive: 0` to flush VRAM between turns.
 
-## SkyWave96 Keyboard Project
-**Plate DXF Generation Rules:** See `SKYWAY96_RULES.md` (Claude ↔ Gemini synchronized)
+## Skyway96 Keyboard Project
+**Project files:** `projects/skyway96/` — all DXF rules, Inkscape notes, screw hole attempts.
+**Plate DXF Generation Rules:** See `projects/skyway96/SKYWAY96_RULES.md` (Claude ↔ Gemini synchronized)
 - 96% keyboard, 101 switches, PCB-mount stabs
 - Data hierarchy: KiCad (authority) > KLE JSON > images
 - Critical: 14mm × 14mm cutouts, no stab plate geometry

@@ -42,8 +42,9 @@ The workspace is configured to use SSH for GitHub authentication.
 
 ---
 
-## SkyWave96 Keyboard Project
-**Plate DXF Generation Rules:** See `SKYWAY96_RULES.md` (Claude ↔ Gemini synchronized)
+## Skyway96 Keyboard Project
+**Project files:** `projects/skyway96/` — all DXF rules, Inkscape notes, screw hole attempts.
+**Plate DXF Generation Rules:** See `projects/skyway96/SKYWAY96_RULES.md` (Claude ↔ Gemini synchronized)
 - 96% keyboard, 101 switches, PCB-mount stabs
 - Data hierarchy: KiCad (authority) > KLE JSON > images
 - Critical: 14mm × 14mm cutouts, no stab plate geometry
@@ -83,7 +84,7 @@ Tailscale is fully operational in userspace mode within Codespaces, and now also
 2. **Root Cause:** Conversion scripts hardcoded v7 paths; gemini lacked batch processing capability.
 3. **Solution:** Created `batch_convert.py` - robust converter handling all versions with proper error handling.
 4. **Outcome:** Successfully converted v4-v10 DXF (v2/v3 skipped due to malformed XML). All active designs now have matching outputs.
-5. **Artifacts:** See `PLATE_PROJECT.md` for full details.
+5. **Artifacts:** See `projects/skyway96/PLATE_PROJECT.md` for full details.
 
 ### Original (2026-04-12)
 1. **Tailscale Fix:** Installed Tailscale via script, started `tailscaled` in userspace mode with SOCKS5 proxy enabled on port 1055.
