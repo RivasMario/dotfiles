@@ -148,3 +148,4 @@ alias aider-gemma-remote="export OLLAMA_API_BASE=http://100.81.194.15:30068 && a
 alias tm='tmux new -s'
 alias tl='tmux ls'
 alias ta='tmux attach -t'
+export PATH="$HOME/dotfiles/bin:/workspaces/dotfiles/bin:$PATH"

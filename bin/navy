@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+import json
+import subprocess
+import sys
+import os
+
+OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
+PROXY = "127.0.0.1:1055"
+IS_MODEL = "llama3.2:3b"
+CT_MODEL = "qwen2.5-coder:7b"
+
+# HARD VRAM LIMITS (RTX 3060 Ti - 8GB)
+MAX_CONTEXT_TOKENS = 4096
+SAFE_HISTORY_WORD_LIMIT = 2500 
+DANGER_ZONE_TOKENS = 3500 # Warn user if a single prompt gets close to the limit
+
+# Colors for CLI
+BLUE = "\033[94m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+RESET = "\033[0m"
+BOLD = "\033[1m"
+
+def print_header():
+    print(f"{BOLD}{BLUE}======================================================{RESET}")
+    print(f"{BOLD}{BLUE}⚓ NAVY INTELLIGENCE TERMINAL ⚓{RESET}")
+    print(f"IS Agent (Planner/Review): {IS_MODEL}")
+    print(f"CT Agent (Coder/Analyst):  {CT_MODEL}")
+    print(f"VRAM Protection:           Active (Max Context: {MAX_CONTEXT_TOKENS} tokens)")
+    print(f"{BOLD}{BLUE}======================================================{RESET}\n")
+
+def estimate_tokens(text):
+    """Rough heuristic: 1 word ~ 1.3 tokens"""
+    return int(len(text.split()) * 1.3)
+
+def enforce_vram_limit(chat_history):
+    while chat_history:
+        text = " ".join([m.get("content", "") for m in chat_history])
+        if len(text.split()) > SAFE_HISTORY_WORD_LIMIT:
+            if len(chat_history) >= 2:
+                chat_history.pop(0)
+                chat_history.pop(0)
+            else:
+                chat_history.pop(0)
+        else:
+            break
+
+def ask_ollama(model, messages, stream=False, system_msg=None):
+    payload_messages = []
+    if system_msg:
+        payload_messages.append({"role": "system", "content": system_msg})
+    payload_messages.extend(messages)
+    
+    data = json.dumps({
+        "model": model,
+        "messages": payload_messages,
+        "stream": stream,
+        "keep_alive": 0,
+        "options": {
+            "num_ctx": MAX_CONTEXT_TOKENS
+        }
+    })
+    
+    cmd = [
+        "curl", "-s", "-N", "--socks5-hostname", PROXY,
+        "-H", "Content-Type: application/json",
+        "-d", data, OLLAMA_URL
+    ]
+    
+    if not stream:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            return f"Error: {result.stderr}"
+        try:
+            return json.loads(result.stdout).get("message", {}).get("content", "")
+        except json.JSONDecodeError:
+            return "Error decoding API response."
+    else:
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
+        full_content = ""
+        for line in process.stdout:
+            if line.strip():
+                try:
+                    chunk = json.loads(line)
+                    if "message" in chunk and "content" in chunk["message"]:
+                        piece = chunk["message"]["content"]
+                        full_content += piece
+                        print(piece, end="", flush=True)
+                except json.JSONDecodeError:
+                    pass
+        print()
+        return full_content
+
+def main():
+    print_header()
+    chat_history = []
+    
+    while True:
+        try:
+            mission = input(f"{BOLD}{YELLOW}Mission > {RESET}").strip()
+            if not mission:
+                continue
+            if mission.lower() in ['exit', 'quit', 'q']:
+                print(f"{BLUE}Disconnecting from terminal.{RESET}")
+                break
+            
+            # VRAM PROTECTION ALERT
+            approx_tokens = estimate_tokens(mission)
+            if approx_tokens > DANGER_ZONE_TOKENS:
+                print(f"\n{BOLD}{RED}⚠️  VRAM OVERFLOW RISK DETECTED ⚠️{RESET}")
+                print(f"{RED}Your input is approximately {approx_tokens} tokens.{RESET}")
+                print(f"{RED}The hard limit for your RTX 3060 Ti is {MAX_CONTEXT_TOKENS} tokens.{RESET}")
+                print(f"{RED}Proceeding will force Ollama to truncate the text or spill into slow system RAM.{RESET}")
+                choice = input(f"{YELLOW}Do you want to proceed and risk 5 tok/s speeds? (y/N): {RESET}").strip().lower()
+                if choice not in ['y', 'yes']:
+                    print(f"{BLUE}Mission aborted. Try breaking the repo/file into smaller chunks.{RESET}\n")
+                    continue
+                
+            print(f"\n{GREEN}[IS Agent]{RESET} drafting plan...")
+            temp_history = chat_history + [{"role": "user", "content": mission}]
+            
+            is_plan_sys = "You are an Intelligence Specialist (IS). Read the user's mission and output a strict 3-step technical execution plan for the Cryptologic Technician (CT) to follow. Do not output code, just the numbered steps. Keep it brief."
+            plan = ask_ollama(IS_MODEL, temp_history, stream=False, system_msg=is_plan_sys)
+            
+            print(f"{BLUE}[CT Agent]{RESET} executing plan (deep work)...")
+            ct_sys = f"You are a Cryptologic Technician (CT). The IS provided this plan: {plan}. Execute it perfectly. Provide full raw code or analysis. Do not summarize, just do the raw technical work."
+            raw_intel = ask_ollama(CT_MODEL, temp_history, stream=False, system_msg=ct_sys)
+            
+            print(f"{GREEN}[IS Agent]{RESET} briefing the CO (final polish):\n")
+            is_brief_sys = f"You are an IS presenting to the Commanding Officer. You must format and polish the raw technical data provided by the CT into a clean, professional, readable response. Do not say 'Here is the brief', just provide the polished response directly to the user.\n\nRAW DATA FROM CT:\n{raw_intel}"
+            
+            final_response = ask_ollama(IS_MODEL, temp_history, stream=True, system_msg=is_brief_sys)
+            print()
+            
+            chat_history.append({"role": "user", "content": mission})
+            chat_history.append({"role": "assistant", "content": final_response})
+            
+            enforce_vram_limit(chat_history)
+            
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n{BLUE}Disconnecting from terminal.{RESET}")
+            break
+
+if __name__ == "__main__":
+    main()
