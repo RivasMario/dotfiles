@@ -25,8 +25,8 @@ BOLD = "\033[1m"
 def print_header():
     print(f"{BOLD}{BLUE}======================================================{RESET}")
     print(f"{BOLD}{BLUE}⚓ NAVY INTELLIGENCE TERMINAL ⚓{RESET}")
-    print(f"IS Agent (Planner/Review): {IS_MODEL}")
-    print(f"CT Agent (Coder/Analyst):  {CT_MODEL}")
+    print(f"Intelligence Analyst (Planner/Review): {IS_MODEL}")
+    print(f"Cryptologic Technician (Coder/Analyst): {CT_MODEL}")
     print(f"VRAM Protection:           Active (Max Context: {MAX_CONTEXT_TOKENS} tokens)")
     print(f"{BOLD}{BLUE}======================================================{RESET}\n")
 
@@ -117,18 +117,19 @@ def main():
                     print(f"{BLUE}Mission aborted. Try breaking the repo/file into smaller chunks.{RESET}\n")
                     continue
                 
-            print(f"\n{GREEN}[IS Agent]{RESET} drafting plan...")
+            print(f"\n{GREEN}[Intelligence Analyst]{RESET} drafting plan...")
             temp_history = chat_history + [{"role": "user", "content": mission}]
             
-            is_plan_sys = "You are an Intelligence Specialist (IS). Read the user's mission and output a strict 3-step technical execution plan for the Cryptologic Technician (CT) to follow. Do not output code, just the numbered steps. Keep it brief."
+            is_plan_sys = "You are an Intelligence Analyst. Read the user's mission and output a strict 3-step technical execution plan for the Cryptologic Technician (CT) to follow. Do not output code, just the numbered steps. Keep it brief."
             plan = ask_ollama(IS_MODEL, temp_history, stream=False, system_msg=is_plan_sys)
             
-            print(f"{BLUE}[CT Agent]{RESET} executing plan (deep work)...")
-            ct_sys = f"You are a Cryptologic Technician (CT). The IS provided this plan: {plan}. Execute it perfectly. Provide full raw code or analysis. Do not summarize, just do the raw technical work."
+            print(f"{BLUE}[Cryptologic Technician]{RESET} executing plan (deep work)...")
+            ct_sys = f"You are a Cryptologic Technician. The Intelligence Analyst provided this plan: {plan}. Execute it perfectly. Provide full raw code or analysis. Do not summarize, just do the raw technical work."
             raw_intel = ask_ollama(CT_MODEL, temp_history, stream=False, system_msg=ct_sys)
             
-            print(f"{GREEN}[IS Agent]{RESET} briefing the CO (final polish):\n")
-            is_brief_sys = f"You are an IS presenting to the Commanding Officer. You must format and polish the raw technical data provided by the CT into a clean, professional, readable response. Do not say 'Here is the brief', just provide the polished response directly to the user.\n\nRAW DATA FROM CT:\n{raw_intel}"
+            print(f"{GREEN}[Intelligence Analyst]{RESET} briefing the CO (final polish):\n")
+            is_brief_sys = f"You are an Intelligence Analyst presenting to the Commanding Officer. You must format and polish the raw technical data provided by the Cryptologic Technician into a clean, professional, readable response. Do not say 'Here is the brief', just provide the polished response directly to the user.\n\nRAW DATA FROM CRYPTOLOGIC TECHNICIAN:\n{raw_intel}"
+
             
             final_response = ask_ollama(IS_MODEL, temp_history, stream=True, system_msg=is_brief_sys)
             print()
