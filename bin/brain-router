@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+import urllib.request
+
+# CONFIGURATION
+OLLAMA_V1_URL = "http://100.81.194.15:30068/v1/chat/completions"
+PROXY = "127.0.0.1:1055"
+PLANNER_MODEL = "llama3.2:3b"
+EXECUTOR_MODEL = "qwen2.5-coder:7b"
+
+class BrainRouter(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        request_json = json.loads(post_data.decode('utf-8'))
+        
+        # ROUTING LOGIC
+        # If the input is small (< 800 tokens approx), use the fast Planner.
+        # If it's a massive context/file dump, use the heavy Executor.
+        prompt_size = len(str(request_json.get('messages', [])))
+        
+        if prompt_size < 3000: # ~2000 tokens
+            target_model = PLANNER_MODEL
+            print(f"🧠 [PLANNER] Routing to {PLANNER_MODEL}")
+        else:
+            target_model = EXECUTOR_MODEL
+            print(f"💪 [EXECUTOR] Routing to {EXECUTOR_MODEL}")
+            
+        request_json['model'] = target_model
+        
+        # Forward to TrueNAS Ollama
+        new_data = json.dumps(request_json).encode('utf-8')
+        req = urllib.request.Request(OLLAMA_V1_URL, data=new_data, headers={'Content-Type': 'application/json'})
+        req.set_proxy(PROXY, 'socks5')
+        
+        # Use curl via subprocess for stable SOCKS5 proxying in local environment
+        import subprocess
+        cmd = ["curl", "-s", "-N", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", new_data, OLLAMA_V1_URL]
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        
+        # Stream the response back to Claw
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        for line in process.stdout:
+            self.wfile.write(line)
+
+def run(server_class=HTTPServer, handler_class=BrainRouter, port=11435):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print(f"🚀 Brain Router active on port {port}...")
+    print(f"📍 Planner: {PLANNER_MODEL} | 📍 Executor: {EXECUTOR_MODEL}")
+    httpd.serve_forever()
+
+if __name__ == "__main__":
+    run()
