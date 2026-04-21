@@ -29,10 +29,35 @@ CYAN = "\033[96m"
 RESET = "\033[0m"
 BOLD = "\033[1m"
 
+def get_env_context():
+    """Detect current environment details dynamically."""
+    import platform
+    os_name = platform.system()
+    hostname = platform.node()
+    cwd = os.getcwd()
+    
+    if os.environ.get("CODESPACES") == "true":
+        env_type = "GitHub Codespace"
+    elif "fedora" in platform.version().lower() or os.path.exists("/etc/fedora-release"):
+        env_type = "Fedora Linux"
+    elif os_name == "Windows":
+        env_type = "Windows PC"
+    else:
+        env_type = f"{os_name} Machine"
+        
+    return {
+        "type": env_type,
+        "hostname": hostname,
+        "cwd": cwd,
+        "os": os_name
+    }
+
 def print_header():
+    env = get_env_context()
     print(f"{BOLD}{BLUE}======================================================{RESET}")
     print(f"{BOLD}{BLUE}🤖 DIDDY: AUTONOMOUS ASSISTANT 🤖{RESET}")
-    print(f"Environment:             GitHub Codespace (/workspaces/dotfiles)")
+    print(f"Environment:             {env['type']} ({env['hostname']})")
+    print(f"Location:                {env['cwd']}")
     print(f"VRAM Protection:         Active ({MAX_CONTEXT_TOKENS} ctx)")
     print(f"{BOLD}{BLUE}======================================================{RESET}\n")
 
@@ -98,8 +123,11 @@ def execute_tool(action_line):
 
 def ask_ollama(model, messages, stream=False, system_msg=None):
     payload_messages = []
-    # Environment Context
-    env_context = "You are running in a GitHub Codespace at /workspaces/dotfiles. You have access to local tools and home network hosts via SSH (Proxmox, TrueNAS)."
+    # Dynamic Environment Context
+    env = get_env_context()
+    env_context = f"You are running on a {env['type']} (Hostname: {env['hostname']}) in the directory: {env['cwd']}. "
+    env_context += "You have access to local tools and home network hosts via SSH (Proxmox, TrueNAS)."
+    
     if system_msg:
         payload_messages.append({"role": "system", "content": f"{env_context} {system_msg}"})
     else:
