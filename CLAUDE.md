@@ -25,16 +25,32 @@ This file provides context for Claude Code when working in this repository.
 - [x] Unify `install.sh` and `.devcontainer/setup.sh`.
 - [x] Add multi-distro support to `install.sh`.
 - [x] Fix `python3` dependency for `pokemon-colorscripts` in Dockerfile.
-- [x] Clean up `.zshrc` and integrate `fastfetch` + `pokemon-colorscripts` (now sequential).
+- [x] Clean up `.zshrc` and integrate `fastfetch` + `pokemon-colorscripts`.
 - [x] Create `GEMINI.md` and `CLAUDE.md` for AI context.
 - [x] Add Tailscale to dotfiles (install, daemon start, operator setup).
 - [x] Verify connectivity to Proxmox via SOCKS5 proxy.
 - [x] Fix OpenClaw agent configuration and Ollama connection.
-- [x] Add portable clipboard support to `.tmux.conf` (now detects clip.exe/wl-copy/pbcopy/xclip).
+- [x] Add portable clipboard support to `.tmux.conf`.
 - [x] Add Windows PowerShell installer (`install.ps1`).
-- [x] Add MSYS2 PATH to `.zshrc` for Windows.
+- [x] **New:** Implement Split-Brain Agent Suite (`diddy`, `claw`, `brain-router`).
+- [x] **New:** Securely purge leaked SSH keys from Git history.
 - [ ] Setup automated testing/validation for the install scripts.
-- [ ] Generate KiCad CLI harness via CLI-Anything (`/cli-anything:cli-anything https://github.com/KiCad/kicad-source-mirror`).
+- [ ] Generate KiCad CLI harness via CLI-Anything.
+
+## AI Suite Operational Instructions (New 2026-04-21)
+The workspace uses a **Split-Brain** strategy (Planner 3B / Executor 7B) to protect the **RTX 3060 Ti (8GB VRAM)**.
+
+### Commands for AI Tasks:
+- **`diddy drone`**: Launch an interactive autonomous session.
+- **`diddy jipoe "task"`**: Generate a `MISSION_PACKET.md` course-of-action plan.
+- **`diddy execute --coa 1`**: Execute Course of Action 1 from the packet.
+- **`claw "task"`**: Launch the protocol-first autonomous coding assistant.
+- **`brain-router`**: Must be running in background (Port 11435) to handle 3B/7B routing.
+
+### Hardware-Safe Context:
+- **`MAX_CONTEXT_TOKENS`**: 4096. 
+- **VRAM Residency**: Keep models 100% on GPU. If upgraded to RTX 4080 (16GB), increase this limit to 16k+.
+- **Model Unloading**: All scripts use `keep_alive: 0` to flush VRAM between turns.
 
 ## SkyWave96 Keyboard Project
 **Plate DXF Generation Rules:** See `SKYWAY96_RULES.md` (Claude ↔ Gemini synchronized)
