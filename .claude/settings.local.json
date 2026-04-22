@@ -72,7 +72,11 @@
       "Bash(/bin/cat *)",
       "Bash(PATH=/usr/bin:/bin git *)",
       "Bash(/bin/head -20)",
-      "Bash(/bin/echo 'fix: pokemon-colorscripts + fastfetch not showing on new terminal *)"
+      "Bash(/bin/echo 'fix: pokemon-colorscripts + fastfetch not showing on new terminal *)",
+      "Bash(pokemon-colorscripts --no-title -s -r)",
+      "Bash(sudo sed *)",
+      "Bash(sudo cp *)",
+      "Bash(fastfetch -c __TRACKED_VAR__/.config/fastfetch/config-pokemon.jsonc --logo-type file-raw --logo /dev/stdin --logo-height 10 --logo-width 32)"
     ]
   }
 }

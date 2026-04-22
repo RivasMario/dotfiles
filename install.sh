@@ -95,17 +95,15 @@ if ! command -v pokemon-colorscripts &>/dev/null; then
     cd "$DOTFILES"
 fi
 
-# Fix CRLF in pokemon-colorscripts binary — Windows checkouts corrupt the shebang.
-POKEMON_BIN=$(command -v pokemon-colorscripts 2>/dev/null)
-if [ -n "$POKEMON_BIN" ] && grep -qP '\r' "$POKEMON_BIN" 2>/dev/null; then
-    python3 -c "
-import sys
-path = '$POKEMON_BIN'
-with open(path, 'rb') as f: data = f.read()
-data = data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
-with open(path, 'wb') as f: f.write(data)
-" && echo "  Fixed CRLF in $POKEMON_BIN"
-fi
+# Fix CRLF in pokemon-colorscripts — Windows checkouts corrupt the shebang.
+for _pokemon_file in \
+    /usr/local/opt/pokemon-colorscripts/pokemon-colorscripts.py \
+    /usr/local/bin/pokemon-colorscripts; do
+    if [ -f "$_pokemon_file" ] && grep -qP '\r' "$_pokemon_file" 2>/dev/null; then
+        sudo sed -i 's/\r//' "$_pokemon_file" && echo "  Fixed CRLF in $_pokemon_file"
+    fi
+done
+unset _pokemon_file
 
 # -----------------------------------------------------------------------------
 # SYMLINK DOTFILES
