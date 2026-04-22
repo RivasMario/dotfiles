@@ -22,7 +22,9 @@
       "Bash(ip route:*)",
       "Bash(git -C /workspaces/dotfiles submodule status)",
       "Bash(git mv *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
