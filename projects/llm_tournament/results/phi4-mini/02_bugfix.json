@@ -1,0 +1,9 @@
+{
+  "prompt": "The following Python function has a bug. Return ONLY the corrected function,\nno prose, no markdown fences.\n\ndef avg(nums):\n    total = 0\n    for n in nums:\n        total += n\n    return total / len(nums) - 1",
+  "output": "def avg(nums): \n    total = sum(nums)\n    return total / len(nums) - 1",
+  "dur_s": 5.840896368026733,
+  "verdict": {
+    "pass": false,
+    "got": "avg([1..5])=2.0"
+  }
+}

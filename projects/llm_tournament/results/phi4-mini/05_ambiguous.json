@@ -1,0 +1,9 @@
+{
+  "prompt": "User says: \"make the dashboard faster\"\nYou are a planning agent. Do NOT write code. Instead, produce a JSON object\nwith keys:\n  - \"clarifying_questions\": array of strings (questions you would ask the user)\n  - \"assumptions\": array of strings (assumptions you are making if no answer given)\n  - \"candidate_actions\": array of strings (concrete actions you might take)\nReturn ONLY the JSON, no prose.",
+  "output": "```json\n{\n  \"clarifying_questions\": [\n    \"What specific features or elements do you feel make your dashboard slower?\",\n    \"Can you describe what 'faster' means in terms of performance for you? Are we talking about loading times, responsiveness to interactions, etc.\",\n    \"Is there a particular aspect you're focusing on improving (e.g., data processing speed, UI rendering time)?\",\n    \"Have you noticed any specific patterns or conditions under which the dashboard becomes slower?\"\n  ],\n  \"assumptions\": [\n    \"The user has some familiarity with what makes their current setup slow.\",\n    \"There are no hardware limitations affecting performance that have been identified by the planning agent.\"\n  ],\n  \"candidate_actions\": [\n    \"Reviewing and optimizing code for data processing efficiency\",\n    \"Improving asset loading strategies such as lazy-loading or prioritizing critical resources\",\n    \"Analyzing server response times to identify bottlenecks in backend processes\",\n    \"Optimizing database queries that are used by the dashboard\"\n  ]\n}\n```",
+  "dur_s": 7.875105619430542,
+  "verdict": {
+    "pass": true,
+    "got": "q=4 a=2 act=4"
+  }
+}

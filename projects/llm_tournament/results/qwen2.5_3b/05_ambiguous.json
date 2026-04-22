@@ -1,0 +1,9 @@
+{
+  "prompt": "User says: \"make the dashboard faster\"\nYou are a planning agent. Do NOT write code. Instead, produce a JSON object\nwith keys:\n  - \"clarifying_questions\": array of strings (questions you would ask the user)\n  - \"assumptions\": array of strings (assumptions you are making if no answer given)\n  - \"candidate_actions\": array of strings (concrete actions you might take)\nReturn ONLY the JSON, no prose.",
+  "output": "{\n  \"clarifying_questions\": [\n    \"What specific parts or components of the dashboard need to be faster?\",\n    \"Is there a particular type of action that is taking longer than expected?\",\n    \"Are there any recent changes in data sources or integrations affecting performance?\"\n  ],\n  \"assumptions\": [\n    \"The user understands what they mean by 'faster' and has specific expectations for the dashboard.\",\n    \"The user may not have a technical background, so explanations are needed about terms like 'performance'.\",\n    \"There might be underlying issues that aren't immediately apparent to the user.\"\n  ],\n  \"candidate_actions\": [\n    \"Analyze current performance metrics of the dashboard components using monitoring tools.\",\n    \"Review recent changes in data sources or integrations for potential bottlenecks.\",\n    \"Optimize queries and processes related to fetching and processing data.\"\n  ]\n}",
+  "dur_s": 6.437266111373901,
+  "verdict": {
+    "pass": true,
+    "got": "q=3 a=3 act=3"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "prompt": "Return ONLY a JSON object matching this schema, no prose, no markdown:\n{\n  \"user_intent_verbatim\": string,\n  \"goal\": string,\n  \"constraints\": array of strings,\n  \"acceptance_criteria\": array of strings,\n  \"steps\": array of objects each with keys \"id\" (int) and \"action\" (string),\n  \"risk_flags\": array of strings\n}\nUser intent: \"Add rate limiting to the login endpoint, max 5 attempts per minute per IP. Must not break existing tests.\"\nProduce the JSON contract now.",
+  "output": "```json\n{\n  \"user_intent_verbatim\": \"Add rate limiting to the login endpoint, max 5 attempts per minute per IP. Must not break existing tests.\",\n  \"goal\": \"Add rate limiting to the login endpoint with a maximum of 5 attempts per minute per IP address and ensure it does not disrupt existing functionality.\",\n  \"constraints\": [\n    \"Must implement rate limiting with a maximum of 5 attempts per minute per IP address\",\n    \"Must not break any existing tests or functionality\",\n    \"Must not introduce any side effects beyond the specified requirements\"\n  ],\n  \"acceptance_criteria\": [\n    \"All existing tests must pass after implementation\",\n    \"Each failed attempt must be logged with relevant details (IP address and timestamp)\"\n  ],\n  \"steps\": [\n    {\n      \"id\": 1,\n      \"action\": \"Implement rate limiting on the login endpoint with a maximum of 5 attempts per minute per IP address\"\n    },\n    {\n      \"id\": 2,\n      \"action\": \"Ensure that the implementation does not disrupt existing functionality or tests\"\n    }\n  ],\n  \"risk_flags\": [\n    \"Risk of performance regression due to rate limiting\"\n  ]\n}\n```",
+  "dur_s": 15.5016028881073,
+  "verdict": {
+    "pass": true,
+    "got": "2 steps"
+  }
+}

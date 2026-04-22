@@ -1,0 +1,13 @@
+{
+  "user_prompt": "Make this Python function faster for large inputs. Preserve its exact return value for all inputs. Return ONLY the rewritten function named `count_pairs` with the same signature, no prose, no markdown fences.\n\nFunction:\ndef count_pairs(nums, target):\n    # returns count of index pairs (i,j) with i<j where nums[i]+nums[j]==target\n    c = 0\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                c += 1\n    return c",
+  "contract_raw": "```json\n{\n  \"user_intent_verbatim\": \"Make this Python function faster for large inputs. Preserve its exact return value for all inputs.\",\n  \"goal\": \"Optimize the `count_pairs` function to handle larger input sizes efficiently.\",\n  \"constraints\": [\n    \"The function must maintain its current signature: `def count_pairs(nums, target)`\",\n    \"The function should preserve the exact return value for all inputs.\"\n  ],\n  \"acceptance_criteria\": [\n    \"The optimized function should run faster than the original implementation for large lists of numbers.\",\n    \"The function's output should remain unchanged for all input pairs that sum to the target.\"\n  ],\n  \"steps\": [\n    {\n      \"id\": 1,\n      \"action\": \"Analyze the current time complexity of the `count_pairs` function.\"\n    },\n    {\n      \"id\": 2,\n      \"action\": \"Identify potential bottlenecks in the code, such as nested loops.\"\n    },\n    {\n      \"id\": 3,\n      \"action\": \"Consider using a hash table to store numbers and their indices for faster lookups.\"\n    },\n    {\n      \"id\": 4,\n      \"action\": \"Implement the optimized function with the identified changes.\"\n    },\n    {\n      \"id\": 5,\n      \"action\": \"Test the optimized function with various inputs, including large lists, to ensure it maintains correctness and performance.\"\n    }\n  ],\n  \"risk_flags\": [\n    \"The optimization might introduce additional complexity or bugs if not handled carefully.\",\n    \"There is a risk of losing some edge cases that were previously handled correctly by the original implementation.\"\n  ]\n}\n```",
+  "contract_valid": true,
+  "contract_err": "",
+  "contract_time_s": 7.86,
+  "final_output": "```python\ndef count_pairs(nums, target):\n    num_to_index = {}\n    count = 0\n    for index, num in enumerate(nums):\n        complement = target - num\n        if complement in num_to_index:\n            count += num_to_index[complement]\n        num_to_index[num] = num_to_index.get(num, 0) + 1\n    return count\n```",
+  "exec_time_s": 7.26,
+  "verdict": {
+    "pass": true,
+    "got": "correct + fast"
+  }
+}

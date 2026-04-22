@@ -36,6 +36,15 @@ This file provides context for Claude Code when working in this repository.
 - [x] **New:** Securely purge leaked SSH keys from Git history.
 - [ ] Setup automated testing/validation for the install scripts.
 - [ ] Generate KiCad CLI harness via CLI-Anything.
+- [ ] **Tournament (2026-04-22):** Bench low+high model pairs from distinct non-Meta providers (Mistral, Qwen, Gemma, Phi, Granite, DeepSeek, Cohere, Yi, Exaone, SmolLM, StableLM) on split-brain suite.
+- [ ] **Handoff contract:** Design + wire JSON schema between planner/executor in brain-router to cut telephone-game fidelity loss (see `memory/handoff_contract_concept.md`).
+- [ ] **RTX 4080:** Recover from buddy → collapse split-brain to single 12-14B model.
+
+### Maybe / Backlog
+- [ ] **MCP Ollama server** for Claude Code — lets Claude offload bulk edits / boilerplate / commits to local models mid-session. Defer until tournament picks winning low+high pair.
+- [ ] **Hybrid routing rules** in `CLAUDE.md` — "use `ollama_local` for X, Claude for Y". Pairs with MCP server above.
+- [ ] **Aider / Continue.dev / Cline eval** — multi-provider tools with native weak+strong model split. Low-effort alt to custom MCP.
+- [ ] **3-tier brain-router** — 3B planner → 7B executor → Claude fallback on acceptance-criteria fail. Daily Claude-call budget knob.
 
 ## AI Suite Operational Instructions (New 2026-04-21)
 The workspace uses a **Split-Brain** strategy (Planner 3B / Executor 7B) to protect the **RTX 3060 Ti (8GB VRAM)**.

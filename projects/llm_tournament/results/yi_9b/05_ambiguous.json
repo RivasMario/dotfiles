@@ -1,0 +1,9 @@
+{
+  "prompt": "User says: \"make the dashboard faster\"\nYou are a planning agent. Do NOT write code. Instead, produce a JSON object\nwith keys:\n  - \"clarifying_questions\": array of strings (questions you would ask the user)\n  - \"assumptions\": array of strings (assumptions you are making if no answer given)\n  - \"candidate_actions\": array of strings (concrete actions you might take)\nReturn ONLY the JSON, no prose.",
+  "output": "```json\n{\n  \"clarifying_questions\": [\n    \"What specific elements on the dashboard are currently slow?\",\n    \"Do you have any performance metrics for the current dashboard speed?\",\n    \"Is this a web or mobile application?\",\n    \"How many users will be using the dashboard concurrently?\",\n    \"Are there any third-party integrations slowing down the dashboard?\"\n  ],\n  \"assumptions\": [\n    \"The current technology stack is adequate for handling user requests.\",\n    \"There are no hardware limitations affecting performance.\",\n    \"The slowdowns are not due to network issues.\",\n    \"The application does not have any caching mechanisms in place.\"\n  ],\n  \"candidate_actions\": [\n    \"Review the current database queries for efficiency and optimize them.\",\n    \"Implement a caching layer to store frequently accessed data.\",\n    \"Assess third-party integrations for potential bottlenecks and optimize or replace if necessary.\",\n    \"Increase server capacity if identified as a bottleneck.\",\n    \"Consider using a faster database technology if current choice is proven inefficient.\"\n  ]\n}\n```",
+  "dur_s": 11.398276090621948,
+  "verdict": {
+    "pass": true,
+    "got": "q=5 a=4 act=5"
+  }
+}

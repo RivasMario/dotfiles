@@ -1,0 +1,9 @@
+{
+  "prompt": "The following Python function has a bug. Return ONLY the corrected function,\nno prose, no markdown fences.\n\ndef avg(nums):\n    total = 0\n    for n in nums:\n        total += n\n    return total / len(nums) - 1",
+  "output": " def avg(nums):\n    total = sum(nums)\n    return total / len(nums)\n\nThe issue with the original function was that it was subtracting 1 from the average, which is not correct. The corrected version calculates the sum of all numbers and then divides by the length of the list to get the average.",
+  "dur_s": 6.373958110809326,
+  "verdict": {
+    "pass": false,
+    "reason": "SyntaxError: invalid syntax (<string>, line 5)"
+  }
+}

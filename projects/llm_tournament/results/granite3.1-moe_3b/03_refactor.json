@@ -1,0 +1,9 @@
+{
+  "prompt": "The project has three files that all reference the symbol `get_usr`:\n  - src/api/routes.py\n  - src/db/queries.py\n  - tests/test_user.py\nRename `get_usr` to `get_user` everywhere. Produce a plan as a JSON list,\none entry per file. Each entry has keys: \"file\", \"old\", \"new\".\nReturn ONLY the JSON, no prose.",
+  "output": "[\"src/api/routes.py\", \"get_usr\", \"get_user\"],\n[\"src/db/queries.py\", \"get_usr\", \"get_user\"],\n[\"tests/test_user.py\", \"get_usr\", \"get_user\"]",
+  "dur_s": 6.956456899642944,
+  "verdict": {
+    "pass": false,
+    "reason": "json parse: Extra data: line 1 column 45 (char 44)"
+  }
+}
