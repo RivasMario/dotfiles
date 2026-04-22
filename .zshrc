@@ -70,7 +70,7 @@ ZSH_THEME="robbyrussell"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -102,12 +102,14 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
-
-source $ZSH/oh-my-zsh.sh
 
 # Random Pokemon + system info on every new terminal
-pokemon-colorscripts --no-title -s -r | fastfetch -c $HOME/.config/fastfetch/config-pokemon.jsonc --logo-type file-raw --logo-height 10 --logo-width 32 --logo -
+if command -v pokemon-colorscripts &>/dev/null && command -v fastfetch &>/dev/null; then
+    pokemon-colorscripts --no-title -s -r 2>/dev/null | \
+        fastfetch -c "$HOME/.config/fastfetch/config-pokemon.jsonc" \
+            --logo-type file-raw --logo /dev/stdin \
+            --logo-height 10 --logo-width 32 2>/dev/null || true
+fi
 
 # Fuzzy history search with Ctrl+R
 source <(fzf --zsh)

@@ -95,17 +95,16 @@ if ! command -v pokemon-colorscripts &>/dev/null; then
     cd "$DOTFILES"
 fi
 
-# Always ensure pokemon-colorscripts wrapper is in ~/.local/bin with correct line endings.
-# The installed .py file often has CRLF from Windows checkouts, breaking the shebang on Linux.
-POKEMON_PY="/usr/local/opt/pokemon-colorscripts/pokemon-colorscripts.py"
-if [ -f "$POKEMON_PY" ]; then
-    PYTHON_CMD=$(command -v python3 || command -v python)
-    if [ -n "$PYTHON_CMD" ]; then
-        mkdir -p "$HOME/.local/bin"
-        printf '#!/bin/sh\nexec %s %s "$@"\n' "$PYTHON_CMD" "$POKEMON_PY" > "$HOME/.local/bin/pokemon-colorscripts"
-        chmod +x "$HOME/.local/bin/pokemon-colorscripts"
-        echo "  pokemon-colorscripts wrapper written to ~/.local/bin/"
-    fi
+# Fix CRLF in pokemon-colorscripts binary — Windows checkouts corrupt the shebang.
+POKEMON_BIN=$(command -v pokemon-colorscripts 2>/dev/null)
+if [ -n "$POKEMON_BIN" ] && grep -qP '\r' "$POKEMON_BIN" 2>/dev/null; then
+    python3 -c "
+import sys
+path = '$POKEMON_BIN'
+with open(path, 'rb') as f: data = f.read()
+data = data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+with open(path, 'wb') as f: f.write(data)
+" && echo "  Fixed CRLF in $POKEMON_BIN"
 fi
 
 # -----------------------------------------------------------------------------
