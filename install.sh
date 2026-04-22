@@ -33,8 +33,21 @@ if [ -z "$SKIP_PACKAGES" ]; then
         # fastfetch and lsd not in standard apt repos — install separately
         if ! command -v fastfetch &>/dev/null; then
             FASTFETCH_DEB=$(mktemp --suffix=.deb)
-            curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb" -o "$FASTFETCH_DEB" && \
-                sudo dpkg -i "$FASTFETCH_DEB" && rm -f "$FASTFETCH_DEB" || echo "  [!] fastfetch install failed, skipping."
+            if command -v dpkg &>/dev/null && curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb" -o "$FASTFETCH_DEB" 2>/dev/null; then
+                sudo dpkg -i "$FASTFETCH_DEB" && rm -f "$FASTFETCH_DEB" || echo "  [!] fastfetch deb install failed, trying tarball."
+            fi
+            # Fallback: extract binary to ~/.local/bin (works without root / when dpkg absent)
+            if ! command -v fastfetch &>/dev/null; then
+                mkdir -p "$HOME/.local/bin"
+                FASTFETCH_TGZ=$(mktemp --suffix=.tar.gz)
+                if curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.tar.gz" -o "$FASTFETCH_TGZ" 2>/dev/null; then
+                    tar -xzf "$FASTFETCH_TGZ" -C /tmp/ 2>/dev/null && \
+                        cp /tmp/fastfetch-linux-amd64/usr/bin/fastfetch "$HOME/.local/bin/fastfetch" && \
+                        chmod +x "$HOME/.local/bin/fastfetch" && \
+                        echo "  fastfetch installed to ~/.local/bin/fastfetch" || echo "  [!] fastfetch tarball install failed, skipping."
+                fi
+                rm -f "$FASTFETCH_TGZ"
+            fi
         fi
         if ! command -v lsd &>/dev/null; then
             LSD_DEB=$(mktemp --suffix=.deb)
@@ -73,7 +86,6 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 if ! command -v pokemon-colorscripts &>/dev/null; then
     echo "==> Installing pokemon-colorscripts..."
     cd "$DOTFILES/pokemon-colorscripts"
-    # Ensure it uses the right python even if 'python3' is just 'python'
     PYTHON_CMD=$(command -v python3 || command -v python)
     if [ -n "$PYTHON_CMD" ]; then
         sudo bash install.sh
@@ -81,8 +93,19 @@ if ! command -v pokemon-colorscripts &>/dev/null; then
         echo "  [!] Python not found, skipping pokemon-colorscripts installation."
     fi
     cd "$DOTFILES"
-else
-    echo "==> pokemon-colorscripts already installed, skipping."
+fi
+
+# Always ensure pokemon-colorscripts wrapper is in ~/.local/bin with correct line endings.
+# The installed .py file often has CRLF from Windows checkouts, breaking the shebang on Linux.
+POKEMON_PY="/usr/local/opt/pokemon-colorscripts/pokemon-colorscripts.py"
+if [ -f "$POKEMON_PY" ]; then
+    PYTHON_CMD=$(command -v python3 || command -v python)
+    if [ -n "$PYTHON_CMD" ]; then
+        mkdir -p "$HOME/.local/bin"
+        printf '#!/bin/sh\nexec %s %s "$@"\n' "$PYTHON_CMD" "$POKEMON_PY" > "$HOME/.local/bin/pokemon-colorscripts"
+        chmod +x "$HOME/.local/bin/pokemon-colorscripts"
+        echo "  pokemon-colorscripts wrapper written to ~/.local/bin/"
+    fi
 fi
 
 # -----------------------------------------------------------------------------
