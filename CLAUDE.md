@@ -46,8 +46,14 @@ This file provides context for Claude Code when working in this repository.
 - [ ] **Aider / Continue.dev / Cline eval** — multi-provider tools with native weak+strong model split. Low-effort alt to custom MCP.
 - [ ] **3-tier brain-router** — 3B planner → 7B executor → Claude fallback on acceptance-criteria fail. Daily Claude-call budget knob.
 
-## AI Suite Operational Instructions (New 2026-04-21)
-The workspace uses a **Split-Brain** strategy (Planner 3B / Executor 7B) to protect the **RTX 3060 Ti (8GB VRAM)**.
+## AI Suite Operational Instructions (Updated 2026-04-22)
+The workspace uses a **Split-Brain** strategy (Planner 3B / Executor 7.8B) to protect the **RTX 3060 Ti (8GB VRAM)**.
+
+**Active pair** (winner of 2026-04-22 tournament, see `projects/llm_tournament/RESULTS.md`):
+- **Planner:** `qwen2.5-coder:3b` (Alibaba) — best contract adherence + speed at 3B scale
+- **Executor:** `exaone3.5:7.8b` (LG) — cross-provider pairing reduces paraphrase bias vs same-provider pairs
+
+No Meta/Llama models — user trust stance.
 
 ### Commands for AI Tasks:
 - **`diddy drone`**: Launch an interactive autonomous session.

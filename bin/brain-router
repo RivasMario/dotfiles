@@ -7,8 +7,8 @@ import re
 # CONFIGURATION
 OLLAMA_V1_URL = "http://100.81.194.15:30068/v1/chat/completions"
 PROXY = "127.0.0.1:1055"
-PLANNER_MODEL = "llama3.2:3b"
-EXECUTOR_MODEL = "qwen2.5-coder:7b"
+PLANNER_MODEL = "qwen2.5-coder:3b"
+EXECUTOR_MODEL = "exaone3.5:7.8b"
 
 class BrainRouter(BaseHTTPRequestHandler):
     def do_POST(self):
