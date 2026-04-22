@@ -1,0 +1,13 @@
+{
+  "user_prompt": "Given this function, write a self-contained Python test script (no pytest, just plain asserts wrapped in try/except with counters) that exercises at least 4 distinct edge cases including: division by zero, negative numbers, zero numerator, and floating point. At end, print 'PASSED: N/M' where N is tests passed and M is total. Include the function definition at the top. Return ONLY the Python code, no prose, no markdown fences.\n\nFunction to test:\ndef safe_div(a, b):\n    if b == 0:\n        return None\n    return a / b",
+  "contract_raw": "```json\n{\n  \"user_intent_verbatim\": \"Given this function, write a self-contained Python test script (no pytest, just plain asserts wrapped in try/except with counters) that exercises at least 4 distinct edge cases including: division by zero, negative numbers, zero numerator, and floating point. At end, print 'PASSED: N/M' where N is tests passed and M is total. Include the function definition at the top.\",\n  \"goal\": \"Create a Python script to test the `safe_div` function with various edge cases.\",\n  \"constraints\": [\n    \"The script should use plain asserts wrapped in try/except blocks.\",\n    \"It should include at least four distinct edge cases.\",\n    \"The script should print 'PASSED: N/M' after running all tests.\"\n  ],\n  \"acceptance_criteria\": [\n    \"All assertions pass without raising any exceptions.\",\n    \"The function `safe_div` is called with the correct arguments for each test case.\",\n    \"The output of `safe_div` matches the expected result for each test case.\"\n  ],\n  \"steps\": [\n    {\n      \"id\": 1,\n      \"action\": \"Define the `safe_div` function.\"\n    },\n    {\n      \"id\": 2,\n      \"action\": \"Write a test script that includes four distinct edge cases.\"\n    },\n    {\n      \"id\": 3,\n      \"action\": \"Run the test script and print 'PASSED: N/M'.\"\n    }\n  ],\n  \"risk_flags\": []\n}\n```",
+  "contract_valid": true,
+  "contract_err": "",
+  "contract_time_s": 7.82,
+  "final_output": "```python\ndef safe_div(a, b):\n    try:\n        return a / b\n    except ZeroDivisionError:\n        return None\n\n# Test script\npassed = 0\ntotal = 4\n\ntry:\n    assert safe_div(10, 2) == 5.0\n    passed += 1\nexcept AssertionError:\n    pass\n\ntry:\n    assert safe_div(-10, -2) == 5.0\n    passed += 1\nexcept AssertionError:\n    pass\n\ntry:\n    assert safe_div(0, 1) == 0.0\n    passed += 1\nexcept AssertionError:\n    pass\n\ntry:\n    assert safe_div(10, 0) is None\n    passed += 1\nexcept AssertionError:\n    pass\n\nprint(f\"PASSED: {passed}/{total}\")\n```",
+  "exec_time_s": 8.38,
+  "verdict": {
+    "pass": true,
+    "got": "4/4"
+  }
+}

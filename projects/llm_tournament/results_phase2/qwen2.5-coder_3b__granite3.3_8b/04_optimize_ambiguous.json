@@ -1,0 +1,13 @@
+{
+  "user_prompt": "Make this Python function faster for large inputs. Preserve its exact return value for all inputs. Return ONLY the rewritten function named `count_pairs` with the same signature, no prose, no markdown fences.\n\nFunction:\ndef count_pairs(nums, target):\n    # returns count of index pairs (i,j) with i<j where nums[i]+nums[j]==target\n    c = 0\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                c += 1\n    return c",
+  "contract_raw": "```json\n{\n  \"user_intent_verbatim\": \"Make this Python function faster for large inputs. Preserve its exact return value for all inputs.\",\n  \"goal\": \"Optimize the `count_pairs` function to handle larger input sizes efficiently.\",\n  \"constraints\": [\n    \"The function must maintain the same signature as before: `def count_pairs(nums, target)`\",\n    \"The function should preserve the exact return value for all inputs.\",\n    \"The optimization should not change the logic of counting pairs.\"\n  ],\n  \"acceptance_criteria\": [\n    \"The function should run faster than the original implementation for large input sizes.\",\n    \"The function's output should remain unchanged for all valid inputs.\"\n  ],\n  \"steps\": [\n    {\n      \"id\": 1,\n      \"action\": \"Analyze the current implementation to identify bottlenecks.\"\n    },\n    {\n      \"id\": 2,\n      \"action\": \"Consider using a hash table (dictionary) to store elements and their indices for faster lookups.\"\n    },\n    {\n      \"id\": 3,\n      \"action\": \"Modify the function to use the hash table to find pairs efficiently.\"\n    },\n    {\n      \"id\": 4,\n      \"action\": \"Test the optimized function with various input sizes to ensure it performs well.\"\n    }\n  ],\n  \"risk_flags\": [\n    \"The optimization might introduce additional memory usage if not handled carefully.\",\n    \"There is a risk of introducing bugs if the logic for updating and accessing the hash table is incorrect.\"\n  ]\n}\n```",
+  "contract_valid": true,
+  "contract_err": "",
+  "contract_time_s": 7.85,
+  "final_output": "```python\ndef count_pairs(nums, target):\n    count = 0\n    seen = {}\n    for num in nums:\n        complement = target - num\n        if complement in seen:\n            count += seen[complement]\n        if num in seen:\n            seen[num] += 1\n        else:\n            seen[num] = 1\n    return count\n```",
+  "exec_time_s": 7.06,
+  "verdict": {
+    "pass": true,
+    "got": "correct + fast"
+  }
+}

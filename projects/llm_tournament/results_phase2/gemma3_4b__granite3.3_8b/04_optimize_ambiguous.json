@@ -1,0 +1,13 @@
+{
+  "user_prompt": "Make this Python function faster for large inputs. Preserve its exact return value for all inputs. Return ONLY the rewritten function named `count_pairs` with the same signature, no prose, no markdown fences.\n\nFunction:\ndef count_pairs(nums, target):\n    # returns count of index pairs (i,j) with i<j where nums[i]+nums[j]==target\n    c = 0\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                c += 1\n    return c",
+  "contract_raw": "```json\n{\n  \"user_intent_verbatim\": \"Make this Python function faster for large inputs. Preserve its exact return value for all inputs. Return ONLY the rewritten function named `count_pairs` with the same signature, no prose, no markdown fences.\",\n  \"goal\": \"Optimize the `count_pairs` function for speed with large inputs while maintaining the original return value.\",\n  \"constraints\": [\n    \"Must return the exact same return value for all inputs.\",\n    \"Must preserve the original function signature (def count_pairs(nums, target):)\"\n  ],\n  \"acceptance_criteria\": [\n    \"The function should execute faster than the original for large input lists.\",\n    \"The function should return the correct count of index pairs (i, j) where i < j and nums[i] + nums[j] == target.\"\n  ],\n  \"steps\": [\n    {\n      \"id\": 1,\n      \"action\": \"Implement a hash map (dictionary) to store the frequency of each number in the input list.\"\n    },\n    {\n      \"id\": 2,\n      \"action\": \"Iterate through the input list once, updating the hash map with each number.\"\n    },\n    {\n      \"id\": 3,\n      \"action\": \"For each number in the hash map, check if the complement (target - number) exists in the hash map.\"\n    },\n    {\n      \"id\": 4,\n      \"action\": \"If the complement exists, increment the count of pairs.\"\n    },\n    {\n      \"id\": 5,\n      \"action\": \"Return the final count.\"\n    }\n  ],\n  \"risk_flags\": [\n    \"Potential for hash map collisions, which could impact performance.\",\n    \"Incorrect implementation of the hash map could lead to incorrect results.\"\n  ]\n}\n```",
+  "contract_valid": true,
+  "contract_err": "",
+  "contract_time_s": 9.78,
+  "final_output": "```python\ndef count_pairs(nums, target):\n    num_freq = {}\n    pair_count = 0\n\n    for num in nums:\n        complement = target - num\n        if complement in num_freq:\n            pair_count += num_freq[complement]\n\n        if num in num_freq:\n            num_freq[num] += 1\n        else:\n            num_freq[num] = 1\n\n    return pair_count\n```",
+  "exec_time_s": 10.35,
+  "verdict": {
+    "pass": true,
+    "got": "correct + fast"
+  }
+}
