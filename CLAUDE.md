@@ -55,6 +55,8 @@ The workspace uses a **Split-Brain** strategy (Planner 3B / Executor 7.8B) to pr
 
 No Meta/Llama models — user trust stance.
 
+**Model refresh policy:** Always check for newer non-Meta releases (qwen, exaone, gemma, granite, mistral, phi, command-r, yi, deepseek, smollm, stablelm, etc.) before starting local-model work. If a newer tag exists in a slot, propose swap + run tournament subset to validate before committing. Don't stay on configured pair out of inertia.
+
 ### Commands for AI Tasks:
 - **`diddy drone`**: Launch an interactive autonomous session.
 - **`claw "task"`**: Launch the protocol-first autonomous coding assistant (v6.1 - Rich).
