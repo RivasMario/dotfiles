@@ -7,9 +7,9 @@
 
 set -euo pipefail
 
-CLAW_BIN="${CLAW_BIN:-$HOME/claw-code-local/rust/target/release/claw}"
+CLAW_BIN="${CLAW_BIN:-/workspaces/claw-code-local/rust/target/release/claw}"
 OLLAMA_HOST="${OLLAMA_HOST:-100.81.194.15:30068}"
-MODEL_DEFAULT="${HOMELAB_CLAW_MODEL:-mistral-nemo:12b}"
+MODEL_DEFAULT="${HOMELAB_CLAW_MODEL:-qwen3:8b}"
 HOMELAB_DIR="${HOMELAB_DIR:-/workspaces/dotfiles/homelab}"
 
 # cd into homelab workspace so CLAUDE.md is always picked up,
@@ -24,9 +24,9 @@ if [[ -d "$HOMELAB_DIR" ]]; then
   fi
 fi
 
-# Auto-fall-back: if the home build is missing but /workspaces copy exists, use it.
-if [[ ! -x "$CLAW_BIN" && -x "/workspaces/claw-code-local/rust/target/release/claw" ]]; then
-  CLAW_BIN="/workspaces/claw-code-local/rust/target/release/claw"
+# Auto-fall-back to $HOME build if persistent /workspaces one is missing.
+if [[ ! -x "$CLAW_BIN" && -x "$HOME/claw-code-local/rust/target/release/claw" ]]; then
+  CLAW_BIN="$HOME/claw-code-local/rust/target/release/claw"
 fi
 
 if [[ ! -x "$CLAW_BIN" ]]; then
