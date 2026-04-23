@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# homelab-goose — drive goose against local Ollama for homelab ops
+# Usage:
+#   homelab-goose                         # REPL session in homelab dir
+#   homelab-goose "task description"      # one-shot prompt, continues interactive
+#   homelab-goose --oneshot "task"        # one-shot, exit after response
+#   homelab-goose --model qwen3:14b ...   # override model
+#   homelab-goose --verbose "task"        # disable caveman output style (default: on)
+
+set -euo pipefail
+
+OLLAMA_HOST_HP="${OLLAMA_HOST_HP:-100.81.194.15:30068}"
+MODEL_DEFAULT="${HOMELAB_GOOSE_MODEL:-qwen3:8b}"
+HOMELAB_DIR="${HOMELAB_DIR:-/workspaces/dotfiles/homelab}"
+MAX_TURNS="${HOMELAB_GOOSE_MAX_TURNS:-50}"
+
+if ! command -v goose >/dev/null 2>&1; then
+  echo "goose binary missing. Install:" >&2
+  echo "  CONFIGURE=false bash <(curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh)" >&2
+  exit 1
+fi
+
+# Fallback homelab dir for non-devcontainer hosts
+if [[ ! -d "$HOMELAB_DIR" && -d "$HOME/dotfiles/homelab" ]]; then
+  HOMELAB_DIR="$HOME/dotfiles/homelab"
+fi
+
+if [[ -d "$HOMELAB_DIR" ]]; then
+  inside=0
+  case "$PWD" in "$HOMELAB_DIR"|"$HOMELAB_DIR"/*) inside=1 ;; esac
+  if [[ $inside -eq 0 ]]; then
+    cd "$HOMELAB_DIR"
+  fi
+  # Ensure .goosehints points at homelab CLAUDE.md so goose loads it every session
+  if [[ -f "CLAUDE.md" && ! -e ".goosehints" ]]; then
+    ln -s CLAUDE.md .goosehints
+  fi
+fi
+
+# Probe Ollama — direct (Tailscale) first, fall back to SOCKS5 host proxy
+probe() {
+  curl -s -o /dev/null --connect-timeout 2 "$@" "http://${OLLAMA_HOST_HP}/api/tags"
+}
+if probe; then
+  :
+elif probe --socks5-hostname 127.0.0.1:1055; then
+  export ALL_PROXY="socks5h://127.0.0.1:1055"
+  echo "[homelab-goose] routing via SOCKS5 127.0.0.1:1055" >&2
+else
+  echo "[homelab-goose] cannot reach Ollama at ${OLLAMA_HOST_HP} (direct or SOCKS5)" >&2
+  exit 2
+fi
+
+# Scrub stale provider env that would steer goose elsewhere
+unset ANTHROPIC_API_KEY ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN
+unset OPENAI_API_KEY OPENAI_BASE_URL
+
+export GOOSE_PROVIDER="ollama"
+export GOOSE_MODEL="${GOOSE_MODEL:-$MODEL_DEFAULT}"
+export OLLAMA_HOST="http://${OLLAMA_HOST_HP}"
+
+# Parse local flags before handing off
+oneshot=0
+caveman=1
+args=()
+for a in "$@"; do
+  case "$a" in
+    --oneshot) oneshot=1 ;;
+    --verbose|--no-caveman) caveman=0 ;;
+    --caveman) caveman=1 ;;
+    *) args+=("$a") ;;
+  esac
+done
+
+# Caveman system prompt — fights qwen3:8b's habit of post-tool rambling.
+# Turned off with --verbose when full prose is wanted.
+CAVEMAN_SYS='Output style rules (override defaults):
+- Drop articles (a/an/the), filler (just/really/basically/simply), pleasantries (sure/certainly/happy to), hedging.
+- Fragments OK. Short synonyms (big not extensive, fix not implement-a-solution-for).
+- Code blocks, file paths, commands, and error strings: verbatim, unchanged.
+- After tool calls finish, output ONLY the requested findings. No "here is what this means", no unsolicited recommendations, no closing questions, no troubleshooting advice the user did not ask for.
+- Pattern: [thing] [action] [reason]. [next].
+- If asked for a heading + N bullets, print exactly that. Then stop.
+- If the user wants normal prose they will pass --verbose.'
+
+if [[ ${#args[@]} -eq 0 ]]; then
+  exec goose session
+fi
+
+# Treat first non-flag arg as prompt text; pass remaining as extra goose args
+prompt=""
+extra=()
+for a in "${args[@]}"; do
+  if [[ -z "$prompt" && "$a" != --* ]]; then
+    prompt="$a"
+  else
+    extra+=("$a")
+  fi
+done
+
+if [[ -z "$prompt" ]]; then
+  exec goose session "${extra[@]}"
+fi
+
+sys_args=()
+if [[ $caveman -eq 1 ]]; then
+  sys_args=(--system "$CAVEMAN_SYS")
+fi
+
+if [[ $oneshot -eq 1 ]]; then
+  exec goose run --no-session --max-turns "$MAX_TURNS" "${sys_args[@]}" -t "$prompt" "${extra[@]}"
+else
+  exec goose run -s --max-turns "$MAX_TURNS" "${sys_args[@]}" -t "$prompt" "${extra[@]}"
+fi

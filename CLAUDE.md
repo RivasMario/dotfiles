@@ -43,27 +43,29 @@ This file provides context for Claude Code when working in this repository.
 ### Maybe / Backlog
 - [ ] **MCP Ollama server** for Claude Code — lets Claude offload bulk edits / boilerplate / commits to local models mid-session. Defer until tournament picks winning low+high pair.
 - [ ] **Hybrid routing rules** in `CLAUDE.md` — "use `ollama_local` for X, Claude for Y". Pairs with MCP server above.
-- [ ] **Aider / Continue.dev / Cline eval** — multi-provider tools with native weak+strong model split. Low-effort alt to custom MCP.
+- [x] **Aider / Continue.dev / Cline / goose eval** — 2026-04-23 bench: goose + qwen3:8b beats aider + claw for homelab ops. `bin/homelab-goose` wired.
 - [ ] **3-tier brain-router** — 3B planner → 7B executor → Claude fallback on acceptance-criteria fail. Daily Claude-call budget knob.
 
-## AI Suite Operational Instructions (Updated 2026-04-22)
-The workspace uses a **Split-Brain** strategy (Planner 3B / Executor 7.8B) to protect the **RTX 3060 Ti (8GB VRAM)**.
+## AI Suite Operational Instructions (Updated 2026-04-23)
 
-**Active pair** (winner of 2026-04-22 tournament, see `projects/llm_tournament/RESULTS.md`):
+**Primary homelab agent:** goose 1.32 + qwen3:8b via `bin/homelab-goose` (alias `dgoose`).
+Won agent bench 2026-04-23 vs aider (no chmod) and claw-code-local (crashed on tool-call parse). See `homelab/CLAUDE.md` for details.
+
+**Legacy split-brain** (RTX 3060 Ti 8GB VRAM safeguard, tournament winner 2026-04-22):
 - **Planner:** `qwen2.5-coder:3b` (Alibaba) — best contract adherence + speed at 3B scale
-- **Executor:** `exaone3.5:7.8b` (LG) — cross-provider pairing reduces paraphrase bias vs same-provider pairs
+- **Executor:** `exaone3.5:7.8b` (LG) — note: lacks Ollama tool capability, limits reuse as agent model
 
 No Meta/Llama models — user trust stance.
 
 **Model refresh policy:** Always check for newer non-Meta releases (qwen, exaone, gemma, granite, mistral, phi, command-r, yi, deepseek, smollm, stablelm, etc.) before starting local-model work. If a newer tag exists in a slot, propose swap + run tournament subset to validate before committing. Don't stay on configured pair out of inertia.
 
 ### Commands for AI Tasks:
-- **`diddy drone`**: Launch an interactive autonomous session.
-- **`claw "task"`**: Launch the protocol-first autonomous coding assistant (v6.1 - Rich).
-- **`claw --drone`**: Launch an interactive autonomous session.
-- **`diddy jipoe "task"`**: Generate a `MISSION_PACKET.md` course-of-action plan.
-- **`diddy execute --coa 1`**: Execute Course of Action 1 from the packet.
-- **`brain-router`**: Must be running in background (Port 11435) to handle 3B/7B routing.
+- **`dgoose` / `homelab-goose "task"`**: Primary homelab agent (goose + qwen3:8b). One-shot or REPL, auto-loads `homelab/CLAUDE.md` via `.goosehints` symlink.
+- **`daider` / `homelab-aider`**: Fallback code-editor (aider + qwen3:8b). Use when task is pure code edit.
+- **`dclaw` / `homelab-claw`**: Legacy claw-code-local harness. Unstable on qwen-coder tool_calls; kept for comparison only.
+- **`diddy drone`**: Legacy HITL planner/executor session.
+- **`diddy jipoe "task"`**: Legacy JIPOE course-of-action planner.
+- **`brain-router`**: Legacy port 11435 3B/7B router, superseded by goose.
 
 ### Hardware-Safe Context:
 - **`MAX_CONTEXT_TOKENS`**: 4096. 

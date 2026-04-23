@@ -162,4 +162,6 @@ alias dclaw='/workspaces/dotfiles/bin/homelab-claw'
 alias claw-local='/workspaces/dotfiles/bin/homelab-claw'
 # Aider against local Ollama
 alias daider='/workspaces/dotfiles/bin/homelab-aider'
+# Goose against local Ollama — primary homelab agent (beat aider + claw in bench 2026-04-23)
+alias dgoose='/workspaces/dotfiles/bin/homelab-goose'
 export PATH="$HOME/.local/bin:$PATH"
