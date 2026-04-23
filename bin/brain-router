@@ -9,8 +9,7 @@ import traceback
 # CONFIGURATION
 OLLAMA_URL = os.environ.get("BRAIN_ROUTER_OLLAMA", "http://100.81.194.15:30068/v1/chat/completions")
 PROXY = os.environ.get("BRAIN_ROUTER_PROXY", "")
-PLANNER_MODEL = "qwen2.5-coder:3b"
-EXECUTOR_MODEL = "exaone3.5:7.8b"
+MODEL = "qwen2.5-coder:7b"
 
 LOG_FILE = "/tmp/router_debug.log"
 
@@ -20,34 +19,49 @@ def debug_log(msg):
 
 class BrainRouter(BaseHTTPRequestHandler):
     def map_tool(self, name, args):
-        WHITELIST = ["bash", "read_file", "write_file", "edit_file", "glob_search", "grep_search", "Agent", "MCP"]
-        if name in WHITELIST: return name, args
+        """Clean command strings of all shell-breaking artifacts"""
+        cmd = name
+        if isinstance(args, dict):
+            if "command" in args: cmd = args["command"]
+            elif "args" in args: cmd = f"{name} {args['args']}"
+            elif args: cmd = f"{name} " + " ".join([str(v) for v in args.values()])
         
-        debug_log(f"🔄 Mapping '{name}' to 'bash'")
-        cmd = args.get("command") or args.get("args") or f"{name} " + " ".join([str(v) for v in args.values()]) if isinstance(args, dict) else name
+        # 1. STRIP ALL MARKDOWN AND QUOTE TRASH
+        cmd = cmd.strip().strip('`').strip() # Remove backticks
+        cmd = cmd.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
+        cmd = cmd.replace('```bash', '').replace('```sh', '').replace('```', '')
         
-        # 1. CIDR CORRECTION (Limit to /16 for safety)
-        if "100.x" in cmd:
-            cmd = cmd.replace("100.x", "100.64.0.0/16")
-            
-        # 2. COMMAND ALIASING & PROXYING (Force Fast-Ping -sn)
-        if "nmap" in cmd.lower() or "run_nmap" in cmd.lower():
-            if "-sn" not in cmd.lower():
-                cmd = cmd.replace("nmap", "nmap -sn")
-            cmd = cmd.replace("run_nmap", "nmap").replace("nmap", "/usr/bin/proxychains4 -q /usr/bin/nmap")
-        elif "ssh" in cmd.lower() and "sshpass" not in cmd.lower():
-            cmd = "/usr/bin/proxychains4 -q " + cmd
-        elif "sshpass" in cmd.lower():
-            cmd = cmd.replace("ssh ", "/usr/bin/proxychains4 -q /usr/bin/ssh ")
-            
-        return "bash", {"command": cmd}
+        # 2. JSON BLOCK DECAPITATION
+        if "{" in cmd and "}" in cmd:
+            try:
+                potential_json = re.search(r'\{.*\}', cmd, re.DOTALL)
+                if potential_json:
+                    j_data = json.loads(potential_json.group(0))
+                    cmd = j_data.get("command") or j_data.get("args") or cmd
+            except: pass
 
-    def translate_request(self, ant_req, is_executor):
-        messages = []
-        sys_p = ant_req.get("system", "")
-        if is_executor:
-            sys_p += "\n\nCRITICAL: You are in TEXT-ONLY mode. NO TOOLS. Just instructions."
-        messages.append({"role": "system", "content": sys_p})
+        # 3. SILENT CORRECTIONS
+        if "100.x" in cmd: cmd = cmd.replace("100.x", "100.64.0.0/16")
+        if "nmap" in cmd.lower() and "-sn" not in cmd.lower():
+            cmd = cmd.replace("nmap", "nmap -sn")
+        
+        # 4. FORCE PROXY & PATHS
+        if "nmap" in cmd.lower(): cmd = "/usr/bin/proxychains4 -q /usr/bin/nmap " + cmd.split("nmap")[-1]
+        if "ssh" in cmd.lower() and "sshpass" not in cmd.lower(): cmd = "/usr/bin/proxychains4 -q /usr/bin/ssh " + cmd.split("ssh")[-1]
+        if "sshpass" in cmd.lower(): cmd = cmd.replace("ssh ", "/usr/bin/proxychains4 -q /usr/bin/ssh ")
+            
+        final_cmd = cmd.replace('`', '').strip()
+        debug_log(f"🛠️  CLEANED CMD: {final_cmd}")
+        return "bash", {"command": final_cmd}
+
+    def translate_request(self, ant_req):
+        god_mode = (
+            "SYSTEM OVERRIDE: YOU ARE A TERMINAL. OUTPUT ONLY THE RAW BASH COMMAND STRING. "
+            "DO NOT USE BACKTICKS. DO NOT USE JSON. DO NOT USE MARKDOWN. "
+            "JUST THE COMMAND. ACTION ONLY."
+        )
+        sys_p = god_mode + "\n\n" + ant_req.get("system", "")
+        messages = [{"role": "system", "content": sys_p}]
         for m in ant_req.get("messages", []):
             role, content = m["role"], m.get("content", "")
             if isinstance(content, list):
@@ -63,41 +77,28 @@ class BrainRouter(BaseHTTPRequestHandler):
     def translate_to_anthropic(self, raw, model):
         try:
             o = json.loads(raw)
-            if "error" in o: return json.dumps({"id": "err", "type": "message", "role": "assistant", "model": model, "content": [{"type": "text", "text": f"Ollama Error: {o['error'].get('message')}"}], "stop_reason": "end_turn", "usage": {"input_tokens": 0, "output_tokens": 0}})
             choice = o["choices"][0]
             msg = choice["message"]
-            content = msg.get("content", "") or ""
-            
-            # STRIP EMPTY MARKDOWN JSON BLOCKS (Causes client hangs)
-            content = re.sub(r'```json\s*```', '', content).strip()
-            
+            content = (msg.get("content") or "").strip()
             blocks, tools = [], []
+            
             if "tool_calls" in msg:
                 for tc in msg["tool_calls"]:
                     f = tc.get("function", {})
                     t_n, t_a = self.map_tool(f.get("name"), json.loads(f.get("arguments", "{}")))
                     tools.append({"type": "tool_use", "id": tc.get("id", "c123"), "name": t_n, "input": t_a})
-            if '"name":' in content:
-                m = re.search(r'\{\s*"name":\s*"(.*?)",\s*"arguments":\s*(\{.*?\})\s*\}', content, re.DOTALL)
-                if m:
-                    t_n, t_a = self.map_tool(m.group(1).strip(), json.loads(m.group(2).strip()))
-                    tools.append({"type": "tool_use", "id": "ctext", "name": t_n, "input": t_a})
-                    content = content.replace(m.group(0), "").strip()
+            
+            # Fallback extraction
+            if not tools and len(content) > 2:
+                # If content looks like a command, force it
+                t_n, t_a = self.map_tool("bash", {"command": content})
+                tools.append({"type": "tool_use", "id": "forced", "name": t_n, "input": t_a})
+                content = ""
 
-            # 2. AUTO-BASH ENGINE (Force convert common commands in text)
-            common_cmds = [r"nmap\s+.*", r"ssh\s+.*", r"sshpass\s+.*", r"cat\s+.*", r"ls\s+.*", r"sudo\s+.*"]
-            for pattern in common_cmds:
-                match = re.search(pattern, content, re.IGNORECASE)
-                if match:
-                    cmd = match.group(0).strip()
-                    debug_log(f"🔥 AUTO-BASH DETECTED: {cmd}")
-                    tools.append({"type": "tool_use", "id": f"auto_{abs(hash(cmd)) % 10000}", "name": "bash", "input": {"command": cmd}})
-                    content = content.replace(cmd, "").strip()
-
-            if content or not tools: blocks.append({"type": "text", "text": content or "..."})
+            if content or not tools: blocks.append({"type": "text", "text": content or "Executing..."})
             blocks.extend(tools)
             return json.dumps({
-                "id": f"msg_{o.get('id', '123')}", "type": "message", "role": "assistant", "model": "claude-3-5-sonnet-20241022",
+                "id": f"msg_local_{o.get('id', '123')}", "type": "message", "role": "assistant", "model": "claude-3-5-sonnet-20241022",
                 "content": blocks, "stop_reason": "tool_use" if tools else "end_turn",
                 "usage": {"input_tokens": o.get("usage", {}).get("prompt_tokens", 0), "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": o.get("usage", {}).get("completion_tokens", 0)}
             })
@@ -107,38 +108,21 @@ class BrainRouter(BaseHTTPRequestHandler):
         try:
             cl = int(self.headers['Content-Length'])
             req = json.loads(self.rfile.read(cl).decode('utf-8'))
-            ps = len(str(req.get('messages', [])))
-            # Planner Threshold: 8000 context tokens
-            is_exec = ps > 8000
-            target = EXECUTOR_MODEL if is_exec else PLANNER_MODEL
-            payload = {"model": target, "messages": self.translate_request(req, is_exec), "stream": False, "temperature": 0.0}
-            
-            # MANDATORY: Only include tools if target is NOT EXAONE
-            if target != EXECUTOR_MODEL and "tools" in req:
-                payload["tools"] = req["tools"]
-            
-            debug_log(f"REQ: {target} | Tools: {'tools' in payload}")
-            
-            cmd = ["curl", "-s", "-X", "POST", "-H", "Content-Type: application/json", "-d", json.dumps(payload), OLLAMA_URL]
-            if PROXY: cmd.insert(1, "--socks5-hostname"); cmd.insert(2, PROXY)
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            
-            translated = self.translate_to_anthropic(res.stdout, target)
-            debug_log(f"RESP: {translated}")
-            
-            encoded = translated.encode('utf-8')
+            if "tools" in req: req["tools"] = [t for t in req["tools"] if t["name"] == "bash"]
+            payload = {"model": MODEL, "messages": self.translate_request(req), "stream": False, "temperature": 0.0}
+            res = subprocess.run(["curl", "-s", "-X", "POST", "-H", "Content-Type: application/json", "-d", json.dumps(payload), OLLAMA_URL], capture_output=True, text=True)
+            encoded = self.translate_to_anthropic(res.stdout, MODEL).encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(encoded)))
             self.end_headers()
             self.wfile.write(encoded)
         except Exception as e:
-            debug_log(f"CRASH: {traceback.format_exc()}")
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"id": "err", "type": "message", "content": [{"type": "text", "text": str(e)}], "usage": {"input_tokens": 0, "output_tokens": 0}}).encode('utf-8'))
 
 if __name__ == "__main__":
-    print(f"🚀 STABLE-BRAIN ROUTER ACTIVE ON PORT 11435")
+    print(f"🚀 SHELL-SAFE ROUTER ACTIVE ON PORT 11435")
     HTTPServer(('', 11435), BrainRouter).serve_forever()

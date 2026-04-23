@@ -8,8 +8,8 @@ import argparse
 
 OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
 PROXY = "127.0.0.1:1055"
-PLANNER_MODEL = "qwen2.5-coder:3b"
-EXECUTOR_MODEL = "exaone3.5:7.8b"
+PLANNER_MODEL = "qwen2.5-coder:7b"
+EXECUTOR_MODEL = "qwen2.5-coder:7b"
 
 # Network Hardware
 PVE_IP = "100.70.69.28"
