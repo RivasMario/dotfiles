@@ -14,7 +14,7 @@ from rich.table import Table
 # CONFIG
 OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
 DEFAULT_PROXY = "127.0.0.1:1055"
-PLANNER = "llama3.2:3b"
+PLANNER = "qwen2.5-coder:7b"
 EXECUTOR = "qwen2.5-coder:7b"
 MAX_CONTEXT = 4096
 PVE_IP = "100.70.69.28"
@@ -90,19 +90,22 @@ def execute_cmd(action_line):
     except Exception as e: return f"Error: {str(e)}"
 
 def run_agent_turn(user_input, session_history):
-    # 1. ANALYZE with Planner
+    # 1. ANALYZE with Planner (Handoff Contract)
     planner_sys = (
-        "You are a Senior Systems Engineer. NEVER simulate or hallucinate results.\n"
-        "Plan REAL terminal commands (ip, ls, nmap, etc.) to gather facts.\n"
-        "If a tool is likely missing, plan to check for it (`which tool`) and ask to install it if needed.\n"
-        "Be extremely concise. No jargon."
+        "You are a Senior Systems Engineer. Output ONLY a valid JSON object matching this schema:\n"
+        "{\n"
+        "  \"mission_understanding\": \"string\",\n"
+        "  \"affected_systems\": [\"string\"],\n"
+        "  \"execution_steps\": [{\"step_id\": 1, \"action_description\": \"string\", \"tools_required\": [\"string\"], \"expected_outcome\": \"string\"}],\n"
+        "  \"safety_constraints\": [\"string\"]\n"
+        "}"
     )
-    plan = ask(PLANNER, [{"role": "system", "content": planner_sys}] + session_history + [{"role": "user", "content": user_input}])
-    console.print(Panel(Text(plan), title="[bold green]Intelligence Analyst (3B)[/bold green]", border_style="green"))
+    plan_json = ask(PLANNER, [{"role": "system", "content": planner_sys}] + session_history + [{"role": "user", "content": user_input}])
+    console.print(Panel(Text(plan_json), title="[bold green]Intelligence Analyst (JSON Handoff)[/bold green]", border_style="green"))
 
     # 2. Tactical Execution Loop (HITL capable)
     exec_sys = (
-        "You are a Terminal Executor. Use bash commands to solve the goal.\n"
+        f"You are a Terminal Executor. Strictly follow this plan: {plan_json}.\n"
         "PROTOCOL:\n"
         "1. Start with THOUGHT: reasoning\n"
         "2. Output ACTION: <tool> \"<cmd>\"\n"
@@ -110,11 +113,10 @@ def run_agent_turn(user_input, session_history):
         "   Tools: run_local, ssh_pve, ssh_truenas\n"
         "3. Wait for result.\n"
         "4. End with FINISHED.\n\n"
-        "If you need to install software, you MUST use PROMPT: to ask for permission first.\n"
-        "Example: PROMPT: \"nmap is missing. May I install it via dnf?\""
+        "If you need to install software, you MUST use PROMPT: to ask for permission first."
     )
     
-    current_history = [{"role": "system", "content": exec_sys}] + session_history + [{"role": "user", "content": f"User: {user_input}\nPlan: {plan}"}]
+    current_history = [{"role": "system", "content": exec_sys}] + session_history + [{"role": "user", "content": f"User: {user_input}"}]
     
     for i in range(10):
         with console.status(f"[bold blue]Turn {i+1}: Thinking...") as status:
@@ -159,7 +161,7 @@ def main():
     args = parser.parse_args()
     os.system('clear')
     banner = Text("⚡ CLAW: HUMAN-IN-THE-LOOP (v8.0)", style="bold cyan")
-    console.print(Panel(banner, border_style="cyan", subtitle=f"Brains: {PLANNER} | {EXECUTOR}"))
+    console.print(Panel(banner, border_style="cyan", subtitle=f"Single-Brain: {PLANNER}"))
     session_history = []
     if args.mission: run_agent_turn(args.mission, session_history)
     console.print(f"\n[bold yellow]Interactive session active. Type 'exit' to quit.[/bold yellow]")

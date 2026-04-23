@@ -37,7 +37,7 @@ This file provides context for Claude Code when working in this repository.
 - [ ] Setup automated testing/validation for the install scripts.
 - [ ] Generate KiCad CLI harness via CLI-Anything.
 - [ ] **Tournament (2026-04-22):** Bench low+high model pairs from distinct non-Meta providers (Mistral, Qwen, Gemma, Phi, Granite, DeepSeek, Cohere, Yi, Exaone, SmolLM, StableLM) on split-brain suite.
-- [ ] **Handoff contract:** Design + wire JSON schema between planner/executor in brain-router to cut telephone-game fidelity loss (see `memory/handoff_contract_concept.md`).
+- [x] **Handoff contract:** Design + wire JSON schema between planner/executor in brain-router to cut telephone-game fidelity loss (see memory/handoff_contract_concept.md).
 - [ ] **RTX 4080:** Recover from buddy → collapse split-brain to single 12-14B model.
 
 ### Maybe / Backlog
