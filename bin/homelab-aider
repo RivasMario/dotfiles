@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# homelab-aider — drive Aider against local Ollama for homelab/code ops
+# Usage:
+#   homelab-aider                         # REPL in current dir
+#   homelab-aider file1 file2 ...         # add files to chat
+#   homelab-aider --model ollama_chat/qwen3:14b ...
+
+set -euo pipefail
+
+AIDER_BIN="${AIDER_BIN:-$HOME/.local/bin/aider}"
+OLLAMA_HOST="${OLLAMA_HOST:-100.81.194.15:30068}"
+MODEL_DEFAULT="${HOMELAB_AIDER_MODEL:-ollama_chat/qwen3:8b}"
+
+if [[ ! -x "$AIDER_BIN" ]]; then
+  echo "aider missing: $AIDER_BIN" >&2
+  echo "install: pip install --user uv && uv tool install --python 3.12 aider-chat" >&2
+  exit 1
+fi
+
+# Probe Ollama — direct (Tailscale) first, fall back to SOCKS5 host proxy
+probe() {
+  curl -s -o /dev/null --connect-timeout 2 "$@" "http://${OLLAMA_HOST}/api/tags"
+}
+if probe; then
+  :
+elif probe --socks5-hostname 127.0.0.1:1055; then
+  export ALL_PROXY="socks5h://127.0.0.1:1055"
+  echo "[homelab-aider] routing via SOCKS5 127.0.0.1:1055" >&2
+else
+  echo "[homelab-aider] cannot reach Ollama at ${OLLAMA_HOST}" >&2
+  exit 2
+fi
+
+unset ANTHROPIC_API_KEY ANTHROPIC_BASE_URL OPENAI_API_KEY OPENAI_BASE_URL
+export OLLAMA_API_BASE="http://${OLLAMA_HOST}"
+
+# Inject --model default if user didn't pass one
+has_model=0
+for a in "$@"; do [[ "$a" == "--model" ]] && has_model=1 && break; done
+if [[ $has_model -eq 0 ]]; then
+  exec "$AIDER_BIN" --model "$MODEL_DEFAULT" --no-auto-commits --no-show-model-warnings "$@"
+else
+  exec "$AIDER_BIN" --no-auto-commits --no-show-model-warnings "$@"
+fi

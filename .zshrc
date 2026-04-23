@@ -160,3 +160,6 @@ export PATH="$HOME/dotfiles/bin:/workspaces/dotfiles/bin:$PATH"
 # Claw Code Local — direct Ollama, no brain-router
 alias dclaw='/workspaces/dotfiles/bin/homelab-claw'
 alias claw-local='/workspaces/dotfiles/bin/homelab-claw'
+# Aider against local Ollama
+alias daider='/workspaces/dotfiles/bin/homelab-aider'
+export PATH="$HOME/.local/bin:$PATH"
