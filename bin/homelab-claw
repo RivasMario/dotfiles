@@ -24,6 +24,11 @@ if [[ -d "$HOMELAB_DIR" ]]; then
   fi
 fi
 
+# Auto-fall-back: if the home build is missing but /workspaces copy exists, use it.
+if [[ ! -x "$CLAW_BIN" && -x "/workspaces/claw-code-local/rust/target/release/claw" ]]; then
+  CLAW_BIN="/workspaces/claw-code-local/rust/target/release/claw"
+fi
+
 if [[ ! -x "$CLAW_BIN" ]]; then
   echo "claw binary missing: $CLAW_BIN" >&2
   echo "build: cd ~/claw-code-local/rust && cargo build -p rusty-claude-cli --release" >&2
@@ -44,8 +49,14 @@ else
   exit 2
 fi
 
-export OPENAI_API_KEY="ollama"
-export OPENAI_BASE_URL="http://${OLLAMA_HOST}/v1"
+# Scrub stale Anthropic/OpenAI env that would steer the binary to brain-router
+# or api.openai.com. claw-code-local routes provider by model-name substring;
+# qwen/llama/gemma models use OLLAMA_* envs.
+unset ANTHROPIC_API_KEY ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN
+unset OPENAI_API_KEY OPENAI_BASE_URL
+
+export OLLAMA_API_KEY="ollama"
+export OLLAMA_BASE_URL="http://${OLLAMA_HOST}/v1"
 
 # Inject --model default if user didn't pass one
 has_model=0
