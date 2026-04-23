@@ -108,7 +108,11 @@
       "Bash(echo \"tournament PID: $!\")",
       "Bash(python3 *)",
       "Bash(echo \"phase2 PID: $!\")",
-      "Bash(ps -p 165322 -o pid,cmd)"
+      "Bash(ps -p 165322 -o pid,cmd)",
+      "Bash(curl -s -m 5 http://100.81.194.15:30068/api/version)",
+      "Bash(curl -s -m 15 -X POST http://127.0.0.1:11435/v1/chat/completions -H \"Content-Type: application/json\" -d '{\"messages\":[{\"role\":\"user\",\"content\":\"say ok\"}],\"stream\":false}')",
+      "Bash(kill 363200)",
+      "Bash(pkill -f 'python3 /workspaces/dotfiles/bin/brain-router')"
     ]
   }
 }

@@ -8,8 +8,8 @@ import argparse
 
 OLLAMA_URL = "http://100.81.194.15:30068/api/chat"
 PROXY = "127.0.0.1:1055"
-PLANNER_MODEL = "llama3.2:3b"
-EXECUTOR_MODEL = "qwen2.5-coder:7b"
+PLANNER_MODEL = "qwen2.5-coder:3b"
+EXECUTOR_MODEL = "exaone3.5:7.8b"
 
 # Network Hardware
 PVE_IP = "100.70.69.28"
@@ -106,14 +106,25 @@ def cmd_drone():
             
             # STEP 1: JIPOE (Planner)
             print(f"{GREEN}Checking intel...{RESET}")
-            planner_sys = "You are a planner. Create a 3-step technical plan to solve the mission. Do not write code. Just numbered steps."
+            planner_sys = (
+                "You are a technical planner. Output ONLY a JSON object matching this schema:\n"
+                "{\n"
+                "  \"mission_understanding\": \"string\",\n"
+                "  \"affected_systems\": [\"string\"],\n"
+                "  \"execution_steps\": [{\"step_id\": 1, \"action_description\": \"string\", \"tools_required\": [\"string\"], \"expected_outcome\": \"string\"}],\n"
+                "  \"safety_constraints\": [\"string\"]\n"
+                "}"
+            )
             planner_msg = [{"role": "system", "content": planner_sys}, {"role": "user", "content": mission}]
-            plan = ask_ollama(PLANNER_MODEL, planner_msg)
-            print(f"{CYAN}Plan:{RESET} {plan.replace('\n', ' ')}")
+            plan_json = ask_ollama(PLANNER_MODEL, planner_msg)
+            print(f"{CYAN}Plan Locked (JSON).{RESET}")
             
             # STEP 2: Executor (Action Loop)
             print(f"{BLUE}Executing...{RESET}")
-            exec_sys = f"You are an autonomous agent. Execute this plan: {plan}. You MUST use this format:\nTHOUGHT: reason\nACTION: run_local \"cmd\" (or ssh_pve, ssh_truenas)\nEnd with REPORT: summary."
+            exec_sys = (
+                f"You are an autonomous executor. Strictly follow this plan: {plan_json}.\n"
+                "Use this format:\nTHOUGHT: reason\nACTION: run_local \"cmd\" (or ssh_pve, ssh_truenas)\nEnd with REPORT: summary."
+            )
             exec_history = [{"role": "system", "content": exec_sys}, {"role": "user", "content": mission}]
             
             final_raw = ""

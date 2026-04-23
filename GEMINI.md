@@ -132,5 +132,7 @@ The workspace now features a custom, high-performance AI agent suite optimized f
 - [x] Recover and batch-convert plate DXF files (v4-v10 successful).
 - [x] **New:** Implement Split-Brain Agent Suite (`diddy`, `claw`, `brain-router`).
 - [x] **New:** Securely purge leaked SSH keys from Git history.
+- [x] **New:** Design and implement Handoff Contract (JSON) for Planner/Executor.
+- [x] **New:** Update AI suite to Tag Team Champions (Qwen 3B / Exaone 7.8B).
 - [ ] Setup automated testing/validation for the install script.
 - [ ] Generate KiCad CLI harness via CLI-Anything.

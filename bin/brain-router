@@ -1,96 +1,144 @@
 #!/usr/bin/env python3
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import os
 import subprocess
 import re
+import traceback
 
 # CONFIGURATION
-OLLAMA_V1_URL = "http://100.81.194.15:30068/v1/chat/completions"
-PROXY = "127.0.0.1:1055"
+OLLAMA_URL = os.environ.get("BRAIN_ROUTER_OLLAMA", "http://100.81.194.15:30068/v1/chat/completions")
+PROXY = os.environ.get("BRAIN_ROUTER_PROXY", "")
 PLANNER_MODEL = "qwen2.5-coder:3b"
 EXECUTOR_MODEL = "exaone3.5:7.8b"
 
+LOG_FILE = "/tmp/router_debug.log"
+
+def debug_log(msg):
+    with open(LOG_FILE, "a") as f:
+        f.write(f"{msg}\n")
+
 class BrainRouter(BaseHTTPRequestHandler):
-    def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        request_json = json.loads(post_data.decode('utf-8'))
+    def map_tool(self, name, args):
+        WHITELIST = ["bash", "read_file", "write_file", "edit_file", "glob_search", "grep_search", "Agent", "MCP"]
+        if name in WHITELIST: return name, args
         
-        # 1. ROUTING (The "Lanes" strategy)
-        prompt_size = len(str(request_json.get('messages', [])))
-        if prompt_size < 3500:
-            target_model = PLANNER_MODEL
-            lane = "PLANNER (3B)"
-        else:
-            target_model = EXECUTOR_MODEL
-            lane = "EXECUTOR (7B)"
+        debug_log(f"🔄 Mapping '{name}' to 'bash'")
+        cmd = args.get("command") or args.get("args") or f"{name} " + " ".join([str(v) for v in args.values()]) if isinstance(args, dict) else name
+        
+        # 1. CIDR CORRECTION (Limit to /16 for safety)
+        if "100.x" in cmd:
+            cmd = cmd.replace("100.x", "100.64.0.0/16")
             
-        print(f"REQ: {json.dumps(request_json)[:500]}")
-        request_json['model'] = target_model
-        
-        # 2. FORWARD REQUEST
-        new_data = json.dumps(request_json).encode('utf-8')
-        cmd = ["curl", "-s", "--socks5-hostname", PROXY, "-H", "Content-Type: application/json", "-d", new_data, OLLAMA_V1_URL]
-        
-        result = subprocess.run(cmd, capture_output=True)
-        if result.returncode != 0:
-            self.send_response(500)
-            self.end_headers()
-            return
+        # 2. COMMAND ALIASING & PROXYING (Force Fast-Ping -sn)
+        if "nmap" in cmd.lower() or "run_nmap" in cmd.lower():
+            if "-sn" not in cmd.lower():
+                cmd = cmd.replace("nmap", "nmap -sn")
+            cmd = cmd.replace("run_nmap", "nmap").replace("nmap", "/usr/bin/proxychains4 -q /usr/bin/nmap")
+        elif "ssh" in cmd.lower() and "sshpass" not in cmd.lower():
+            cmd = "/usr/bin/proxychains4 -q " + cmd
+        elif "sshpass" in cmd.lower():
+            cmd = cmd.replace("ssh ", "/usr/bin/proxychains4 -q /usr/bin/ssh ")
+            
+        return "bash", {"command": cmd}
 
-        # 3. TRANSLATION (Fixing the JSON "Poop")
+    def translate_request(self, ant_req, is_executor):
+        messages = []
+        sys_p = ant_req.get("system", "")
+        if is_executor:
+            sys_p += "\n\nCRITICAL: You are in TEXT-ONLY mode. NO TOOLS. Just instructions."
+        messages.append({"role": "system", "content": sys_p})
+        for m in ant_req.get("messages", []):
+            role, content = m["role"], m.get("content", "")
+            if isinstance(content, list):
+                text = "".join([b.get("text", "") for b in content if b.get("type") == "text"])
+                for b in content:
+                    if b.get("type") == "tool_result":
+                        messages.append({"role": "tool", "tool_call_id": b["tool_use_id"], "content": str(b.get("content", ""))})
+                if text: messages.append({"role": role, "content": text})
+            else:
+                messages.append({"role": role, "content": content})
+        return messages
+
+    def translate_to_anthropic(self, raw, model):
         try:
-            resp_json = json.loads(result.stdout.decode('utf-8'))
+            o = json.loads(raw)
+            if "error" in o: return json.dumps({"id": "err", "type": "message", "role": "assistant", "model": model, "content": [{"type": "text", "text": f"Ollama Error: {o['error'].get('message')}"}], "stop_reason": "end_turn", "usage": {"input_tokens": 0, "output_tokens": 0}})
+            choice = o["choices"][0]
+            msg = choice["message"]
+            content = msg.get("content", "") or ""
             
-            # Check if model outputted tool call as TEXT instead of tool_calls object
-            if 'choices' in resp_json and len(resp_json['choices']) > 0:
-                message = resp_json['choices'][0].get('message', {})
-                content = message.get('content', '')
-                
-                # If we see JSON tool structure in the text content
-                if '"name":' in content and '"arguments":' in content:
-                    print(f"🛠️  Detected text tool call. Translating to native harness format...")
-                    
-                    # Regex to find the JSON block inside the text
-                    match = re.search(r'\{.*"name".*"arguments".*\}', content, re.DOTALL)
-                    if match:
-                        tool_json_str = match.group(0)
-                        try:
-                            tool_data = json.loads(tool_json_str)
-                            # Inject into proper OpenAI tool_calls structure
-                            message['tool_calls'] = [{
-                                "id": "call_local_" + str(hash(tool_json_str)),
-                                "type": "function",
-                                "function": {
-                                    "name": tool_data.get('name'),
-                                    "arguments": json.dumps(tool_data.get('arguments'))
-                                }
-                            }]
-                            # Clear the content so it doesn't print the raw JSON to user
-                            message['content'] = content.replace(tool_json_str, "").strip()
-                            print(f"✅ Translation successful: {tool_data.get('name')}")
-                        except:
-                            pass
+            # STRIP EMPTY MARKDOWN JSON BLOCKS (Causes client hangs)
+            content = re.sub(r'```json\s*```', '', content).strip()
             
-            final_resp = json.dumps(resp_json).encode('utf-8')
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Content-Length', len(final_resp))
-            self.end_headers()
-            self.wfile.write(final_resp)
-            
-        except Exception as e:
-            print(f"❌ Response translation error: {e}")
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(result.stdout)
+            blocks, tools = [], []
+            if "tool_calls" in msg:
+                for tc in msg["tool_calls"]:
+                    f = tc.get("function", {})
+                    t_n, t_a = self.map_tool(f.get("name"), json.loads(f.get("arguments", "{}")))
+                    tools.append({"type": "tool_use", "id": tc.get("id", "c123"), "name": t_n, "input": t_a})
+            if '"name":' in content:
+                m = re.search(r'\{\s*"name":\s*"(.*?)",\s*"arguments":\s*(\{.*?\})\s*\}', content, re.DOTALL)
+                if m:
+                    t_n, t_a = self.map_tool(m.group(1).strip(), json.loads(m.group(2).strip()))
+                    tools.append({"type": "tool_use", "id": "ctext", "name": t_n, "input": t_a})
+                    content = content.replace(m.group(0), "").strip()
 
-def run(server_class=HTTPServer, handler_class=BrainRouter, port=11435):
-    server_address = ('', port)
-    httpd = server_class(server_address, handler_class)
-    print(f"🚀 CLAW DUAL-BRAIN ROUTER ACTIVE ON PORT {port}")
-    httpd.serve_forever()
+            # 2. AUTO-BASH ENGINE (Force convert common commands in text)
+            common_cmds = [r"nmap\s+.*", r"ssh\s+.*", r"sshpass\s+.*", r"cat\s+.*", r"ls\s+.*", r"sudo\s+.*"]
+            for pattern in common_cmds:
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    cmd = match.group(0).strip()
+                    debug_log(f"🔥 AUTO-BASH DETECTED: {cmd}")
+                    tools.append({"type": "tool_use", "id": f"auto_{abs(hash(cmd)) % 10000}", "name": "bash", "input": {"command": cmd}})
+                    content = content.replace(cmd, "").strip()
+
+            if content or not tools: blocks.append({"type": "text", "text": content or "..."})
+            blocks.extend(tools)
+            return json.dumps({
+                "id": f"msg_{o.get('id', '123')}", "type": "message", "role": "assistant", "model": "claude-3-5-sonnet-20241022",
+                "content": blocks, "stop_reason": "tool_use" if tools else "end_turn",
+                "usage": {"input_tokens": o.get("usage", {}).get("prompt_tokens", 0), "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": o.get("usage", {}).get("completion_tokens", 0)}
+            })
+        except: return json.dumps({"id": "err", "type": "message", "role": "assistant", "model": "error", "content": [{"type": "text", "text": "Format Error"}], "stop_reason": "end_turn", "usage": {"input_tokens": 0, "output_tokens": 0}})
+
+    def do_POST(self):
+        try:
+            cl = int(self.headers['Content-Length'])
+            req = json.loads(self.rfile.read(cl).decode('utf-8'))
+            ps = len(str(req.get('messages', [])))
+            # Planner Threshold: 8000 context tokens
+            is_exec = ps > 8000
+            target = EXECUTOR_MODEL if is_exec else PLANNER_MODEL
+            payload = {"model": target, "messages": self.translate_request(req, is_exec), "stream": False, "temperature": 0.0}
+            
+            # MANDATORY: Only include tools if target is NOT EXAONE
+            if target != EXECUTOR_MODEL and "tools" in req:
+                payload["tools"] = req["tools"]
+            
+            debug_log(f"REQ: {target} | Tools: {'tools' in payload}")
+            
+            cmd = ["curl", "-s", "-X", "POST", "-H", "Content-Type: application/json", "-d", json.dumps(payload), OLLAMA_URL]
+            if PROXY: cmd.insert(1, "--socks5-hostname"); cmd.insert(2, PROXY)
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            
+            translated = self.translate_to_anthropic(res.stdout, target)
+            debug_log(f"RESP: {translated}")
+            
+            encoded = translated.encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
+        except Exception as e:
+            debug_log(f"CRASH: {traceback.format_exc()}")
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"id": "err", "type": "message", "content": [{"type": "text", "text": str(e)}], "usage": {"input_tokens": 0, "output_tokens": 0}}).encode('utf-8'))
 
 if __name__ == "__main__":
-    run()
+    print(f"🚀 STABLE-BRAIN ROUTER ACTIVE ON PORT 11435")
+    HTTPServer(('', 11435), BrainRouter).serve_forever()
