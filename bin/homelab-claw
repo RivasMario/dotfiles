@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# homelab-claw — drive claw-code-local against local Ollama for homelab ops
+# Usage:
+#   homelab-claw                          # REPL in current dir
+#   homelab-claw "task description"       # one-shot prompt
+#   homelab-claw --model qwen3:14b ...    # override model
+
+set -euo pipefail
+
+CLAW_BIN="${CLAW_BIN:-$HOME/claw-code-local/rust/target/release/claw}"
+OLLAMA_HOST="${OLLAMA_HOST:-100.81.194.15:30068}"
+MODEL_DEFAULT="${HOMELAB_CLAW_MODEL:-qwen2.5-coder:7b}"
+
+if [[ ! -x "$CLAW_BIN" ]]; then
+  echo "claw binary missing: $CLAW_BIN" >&2
+  echo "build: cd ~/claw-code-local/rust && cargo build -p rusty-claude-cli --release" >&2
+  exit 1
+fi
+
+# Probe Ollama — direct (Tailscale) first, fall back to SOCKS5 host proxy
+probe() {
+  curl -s -o /dev/null --connect-timeout 2 "$@" "http://${OLLAMA_HOST}/api/tags"
+}
+if probe; then
+  :
+elif probe --socks5-hostname 127.0.0.1:1055; then
+  export ALL_PROXY="socks5h://127.0.0.1:1055"
+  echo "[homelab-claw] routing via SOCKS5 127.0.0.1:1055" >&2
+else
+  echo "[homelab-claw] cannot reach Ollama at ${OLLAMA_HOST} (direct or SOCKS5)" >&2
+  exit 2
+fi
+
+export OPENAI_API_KEY="ollama"
+export OPENAI_BASE_URL="http://${OLLAMA_HOST}/v1"
+
+# Inject --model default if user didn't pass one
+has_model=0
+for a in "$@"; do [[ "$a" == "--model" || "$a" == "-m" ]] && has_model=1 && break; done
+if [[ $has_model -eq 0 ]]; then
+  exec "$CLAW_BIN" --model "$MODEL_DEFAULT" "$@"
+else
+  exec "$CLAW_BIN" "$@"
+fi

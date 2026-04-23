@@ -157,20 +157,6 @@ alias tl='tmux ls'
 alias ta='tmux attach -t'
 export PATH="$HOME/dotfiles/bin:/workspaces/dotfiles/bin:$PATH"
 
-# Claw Code Local Shortcut
-claw-local() {
-    # Ensure brain-router is running
-    if ! pgrep -f brain-router > /dev/null; then
-        echo "==> Starting dual-brain router..."
-        python3 /workspaces/dotfiles/bin/brain-router > /tmp/brain-router.log 2>&1 &
-        sleep 1
-    fi
-
-    # Config
-    export ANTHROPIC_API_KEY=local-dummy
-    export ANTHROPIC_BASE_URL=http://localhost:11435/v1
-    
-    # Run binary
-    /workspaces/claw-code-local/rust/target/release/claw "$@"
-}
-alias dclaw=claw-local
+# Claw Code Local — direct Ollama, no brain-router
+alias dclaw='/workspaces/dotfiles/bin/homelab-claw'
+alias claw-local='/workspaces/dotfiles/bin/homelab-claw'
