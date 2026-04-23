@@ -10,6 +10,19 @@ set -euo pipefail
 CLAW_BIN="${CLAW_BIN:-$HOME/claw-code-local/rust/target/release/claw}"
 OLLAMA_HOST="${OLLAMA_HOST:-100.81.194.15:30068}"
 MODEL_DEFAULT="${HOMELAB_CLAW_MODEL:-qwen2.5-coder:7b}"
+HOMELAB_DIR="${HOMELAB_DIR:-/workspaces/dotfiles/homelab}"
+
+# cd into homelab workspace so CLAUDE.md is always picked up,
+# unless user passed --cwd or is already inside it.
+if [[ -d "$HOMELAB_DIR" ]]; then
+  inside=0
+  case "$PWD" in "$HOMELAB_DIR"|"$HOMELAB_DIR"/*) inside=1 ;; esac
+  has_cwd=0
+  for a in "$@"; do [[ "$a" == "--cwd" ]] && has_cwd=1 && break; done
+  if [[ $inside -eq 0 && $has_cwd -eq 0 ]]; then
+    cd "$HOMELAB_DIR"
+  fi
+fi
 
 if [[ ! -x "$CLAW_BIN" ]]; then
   echo "claw binary missing: $CLAW_BIN" >&2
