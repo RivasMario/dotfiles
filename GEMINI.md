@@ -134,5 +134,8 @@ The workspace now features a custom, high-performance AI agent suite optimized f
 - [x] **New:** Securely purge leaked SSH keys from Git history.
 - [x] **New:** Design and implement Handoff Contract (JSON) for Planner/Executor.
 - [x] **New:** Update AI suite to Tag Team Champions (Qwen 3B / Exaone 7.8B).
+- [x] **New:** Secure homelab media stack behind TorGuard VPN kill-switch.
+- [x] **New:** Clean up Calibre database and deploy CrowdSec on TrueNAS.
+- [ ] Deploy Wazuh SIEM to Proxmox VM (Pending Handoff).
 - [ ] Setup automated testing/validation for the install script.
 - [ ] Generate KiCad CLI harness via CLI-Anything.

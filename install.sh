@@ -199,10 +199,10 @@ fi
 # -----------------------------------------------------------------------------
 # SET ZSH AS DEFAULT SHELL
 # -----------------------------------------------------------------------------
-if [ "$SHELL" != "$(which zsh)" ]; then
+if [ "$SHELL" != "$(command -v zsh)" ]; then
     echo ""
     echo "==> Setting zsh as default shell..."
-    sudo usermod --shell "$(which zsh)" "$USER"
+    sudo usermod --shell "$(command -v zsh)" "$USER"
 fi
 
 echo ""

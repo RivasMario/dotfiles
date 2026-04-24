@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "mission_understanding": "Deploy Wazuh SIEM Manager on Proxmox. Previous attempt on Debian 12 LXC failed due to missing sudo and dependencies during the wazuh-install script. A new Ubuntu 22.04 LXC template has been downloaded. Need to create the LXC, install dependencies, and run the wazuh-install.sh script.",
+  "affected_systems": [
+    "Proxmox Host (100.70.69.28)",
+    "LXC 102 (Wazuh Manager)"
+  ],
+  "execution_steps": [
+    {
+      "step_id": 1,
+      "action_description": "Create Ubuntu 22.04 LXC container (VMID 102) on Proxmox using the downloaded template in local-lvm.",
+      "tools_required": [
+        "ssh",
+        "pct"
+      ],
+      "expected_outcome": "LXC container 102 is created and started."
+    },
+    {
+      "step_id": 2,
+      "action_description": "Install required dependencies (curl, sudo, gnupg, apt-transport-https, lsb-release) inside the LXC container.",
+      "tools_required": [
+        "ssh",
+        "pct exec",
+        "apt"
+      ],
+      "expected_outcome": "Dependencies are installed."
+    },
+    {
+      "step_id": 3,
+      "action_description": "Download and execute the Wazuh installation script (wazuh-install.sh -a) inside the LXC container.",
+      "tools_required": [
+        "ssh",
+        "pct exec",
+        "curl",
+        "bash"
+      ],
+      "expected_outcome": "Wazuh Manager is fully installed and admin passwords are outputted."
+    }
+  ],
+  "safety_constraints": [
+    "Do not delete existing storage pools.",
+    "Do not stop TrueNAS services.",
+    "Ensure LXC has nesting=1 enabled."
+  ]
+}

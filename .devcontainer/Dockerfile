@@ -10,6 +10,7 @@ RUN dnf upgrade -y && \
     shadow-utils \
     findutils \
     procps-ng \
+    which \
     nodejs \
     npm \
     zsh \
