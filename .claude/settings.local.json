@@ -144,7 +144,11 @@
       "Bash(aider --version)",
       "Bash(/workspaces/dotfiles/bin/homelab-aider --help)",
       "Bash(cp \".claude/settings.json\" ~/.claude/settings.json)",
-      "Read(//c/Users/v-mariorivas/.claude/**)"
+      "Read(//c/Users/v-mariorivas/.claude/**)",
+      "Bash(bash -n install.sh)",
+      "Bash(pwsh -NoProfile -Command '[void]\\(Get-Content install.ps1 -Raw | ForEach-Object { try { [scriptblock]::Create\\($_\\) | Out-Null; '\\\\''install.ps1: parse OK'\\\\'' } catch { '\\\\''install.ps1: PARSE FAIL: '\\\\'' + $_.Exception.Message } }\\)')",
+      "Bash(py -c \"import json; json.load\\(open\\('.claude/settings.json'\\)\\); print\\('settings.json valid'\\)\")",
+      "PowerShell(Resolve-Path *)"
     ]
   }
 }
