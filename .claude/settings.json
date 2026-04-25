@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/v-mariorivas/OneDrive - Microsoft/Documents/GitHub/96_-Hotswap-Keyboard-PCB/KiCAD Source Files/**)",
+      "Bash(gh repo:*)",
+      "Bash(git -C \"c:/Users/v-mariorivas/OneDrive - Microsoft/Documents/GitHub/96_-Hotswap-Keyboard-PCB\" remote set-url origin https://github.com/RivasMario/SKYWAY-96.git)",
+      "Bash(git -C \"c:/Users/v-mariorivas/OneDrive - Microsoft/Documents/GitHub/96_-Hotswap-Keyboard-PCB\" remote -v)",
+      "Bash(ls /.dockerenv)",
+      "Read(//proc/1/**)",
+      "Bash(tee /tmp/ts-up.log)",
+      "Bash(claude plugin *)"
+    ]
+  },
+  "model": "opus",
+  "enabledPlugins": {
+    "caveman@caveman": true,
+    "andrej-karpathy-skills@karpathy-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "karpathy-skills": {
+      "source": {
+        "source": "github",
+        "repo": "forrestchang/andrej-karpathy-skills"
+      }
+    }
+  },
+  "effortLevel": "high"
+}

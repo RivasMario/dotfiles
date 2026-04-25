@@ -181,11 +181,14 @@ Write-Host ""
 Write-Host "==> Linking dotfiles..."
 New-Item -ItemType Directory -Force -Path "$userHome\.config\fastfetch" | Out-Null
 
+New-Item -ItemType Directory -Force -Path "$userHome\.claude" | Out-Null
+
 $links = @(
     @{ src = "$dotfiles\.tmux.conf";    dst = "$userHome\.tmux.conf" },
     @{ src = "$dotfiles\.tmux-help.txt"; dst = "$userHome\.tmux-help.txt" },
     @{ src = "$dotfiles\.zshrc";        dst = "$userHome\.zshrc" },
-    @{ src = "$dotfiles\config\fastfetch\config-pokemon.jsonc"; dst = "$userHome\.config\fastfetch\config-pokemon.jsonc" }
+    @{ src = "$dotfiles\config\fastfetch\config-pokemon.jsonc"; dst = "$userHome\.config\fastfetch\config-pokemon.jsonc" },
+    @{ src = "$dotfiles\.claude\settings.json"; dst = "$userHome\.claude\settings.json" }
 )
 foreach ($link in $links) {
     if (Test-Path $link.dst) { Remove-Item $link.dst -Force }

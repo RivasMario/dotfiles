@@ -142,7 +142,9 @@
       "Bash(export PATH=\"$HOME/.local/bin:$PATH\")",
       "Bash(uv tool *)",
       "Bash(aider --version)",
-      "Bash(/workspaces/dotfiles/bin/homelab-aider --help)"
+      "Bash(/workspaces/dotfiles/bin/homelab-aider --help)",
+      "Bash(cp \".claude/settings.json\" ~/.claude/settings.json)",
+      "Read(//c/Users/v-mariorivas/.claude/**)"
     ]
   }
 }
