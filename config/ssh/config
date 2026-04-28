@@ -4,3 +4,28 @@ Host github.com
     User git
     IdentityFile ~/.ssh/github
     IdentitiesOnly yes
+
+# Homelab — Proxmox over Tailscale
+Host proxmox pve
+    HostName 100.70.69.28
+    User root
+    IdentityFile ~/.ssh/homelab
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+
+# Homelab — TrueNAS over Tailscale
+Host truenas nas
+    HostName 100.81.194.15
+    User nasuser
+    IdentityFile ~/.ssh/homelab
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+
+# Homelab — TrueNAS LAN fallback (when tailscaled app dead)
+Host truenas-lan nas-lan
+    HostName 192.168.0.203
+    User nasuser
+    IdentityFile ~/.ssh/homelab
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+    ProxyJump proxmox

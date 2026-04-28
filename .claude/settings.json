@@ -11,7 +11,7 @@
       "Bash(claude plugin *)"
     ]
   },
-  "model": "opus",
+  "model": "opus[1m]",
   "enabledPlugins": {
     "caveman@caveman": true,
     "andrej-karpathy-skills@karpathy-skills": true
@@ -30,5 +30,6 @@
       }
     }
   },
-  "effortLevel": "high"
+  "effortLevel": "high",
+  "theme": "dark"
 }
