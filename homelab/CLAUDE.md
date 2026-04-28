@@ -62,14 +62,42 @@ Take over homelab setup and ongoing ops from prior Claude Code sessions. You are
 - `ssh -o ProxyCommand='ncat --proxy 127.0.0.1:1055 --proxy-type socks5 %h %p' -o StrictHostKeyChecking=no root@100.70.69.28`
 - Dotfiles `install.sh` multi-distro; devcontainer setup merged.
 
-## In Flight
+## In Flight (2026-04-28)
 
-- [ ] **BASEPOOL scrub in progress** — started 2026-04-23 09:08:21 after clearing 5 corrupt WINSET media files (~45GB freed). Expected ~4h runtime. Error metadata should clear on completion.
-- [ ] **VM 100 qemu-guest-agent** — not running inside UBUNTU-KASM, causes qmp guest-ping timeouts. Fix from VM console: `apt install qemu-guest-agent && systemctl enable --now qemu-guest-agent`. Not reachable from host ssh.
+### **Active: BASEPOOL resilver sda → sde**
+- Started 2026-04-27 17:53:15 PDT
+- sda (Seagate ST4000VN008, 24,680h, 16 pending sectors, was previous Apr 1 replacement — bought used from RePC, was originally ex-external w/ 283,602 head-park cycles) being replaced by sde (WD60EDAZ 6TB white-label shucked, 1767h, pristine SMART)
+- Pool ONLINE during, all 15 NAS apps STOPPED to avoid I/O contention with resilver
+- ETA at session pause (≈19:27 PDT 2026-04-27): **67.64% done, 1h41m remaining, ~21:08 PDT finish**
+- Cause of crash cascade: bad sda sectors triggered ZFS retry purgatory under load → kernel hang. Compounded by Gemini's `docker image prune -a -f` 2026-04-27 10:45 wiping all app images + destroying `BASEPOOL/ix-apps/docker` dataset (recreated this session).
+- Post-resilver runbook: `/home/vscode/.claude/projects/-workspaces-dotfiles/memory/post_resilver_runbook.md`
+
+### **PVE LXC stage built (2026-04-27/28)**
+6 empty Debian 13 LXCs ready for service install once resilver completes:
+| VMID | Service | IP | Purpose |
+|------|---------|-----|---------|
+| 103 | beszel | 192.168.0.113 | replaces homelab_pulse.sh, host metrics |
+| 104 | filestash | 192.168.0.101 | replaces filebrowser-quantum |
+| 105 | byparr | 192.168.0.166 | flaresolverr-class, fresh install |
+| 106 | prowlarr | 192.168.0.141 | takes UI backup from NAS prowlarr |
+| 107 | homepage | 192.168.0.116 | rsync configs from NAS |
+| 108 | scrutiny | 192.168.0.142 | drive SMART monitor (catches next sda early) |
+
+### **Connectivity established**
+- SSH key `~/.ssh/homelab` generated, pubkey installed on PVE root + nasuser
+- `~/.ssh/config` has `proxmox`, `truenas`, `truenas-lan` (ProxyJump via PVE) — committed in dotfiles
+- TrueNAS sshd `StrictModes=no` persisted via `midclt call ssh.update '{"options":"Match all\nStrictModes no"}'` (NFSv4 ACL on ZFS dataset blocks chmod, would otherwise reject keys with bad perms)
+
+### **Older items still pending**
+- [ ] **VM 100** (UBUNTU-KASM) was destroyed sometime between 2026-04-23 and 2026-04-28 — not in `qm list`, only LXC 102 wazuh-manager remained (also destroyed this session for being a dead stub at 95% full)
 - [ ] **RTX 4080 recovery:** when card returns, swap TrueNAS GPU + unload 8GB ceiling. Collapse to single 12-14B coder model.
 - [ ] **Model refresh sweep:** check qwen/exaone/gemma/granite/deepseek tags for upgrades before next local-model commit.
 - [ ] **Install-script testing:** automated validation for `install.sh` / `install.ps1` across distros.
 - [ ] **KiCad CLI harness:** generate via CLI-Anything for Skyway96 plate workflow.
+- [ ] **Rotate `crispypond211`** — leaked in repo (`bin/claw-fancy`, `bin/diddy`, `homelab/CLAUDE.md`, this conversation) AND in `.claude/settings.local.json`. Rotate NAS + Proxmox passwords.
+- [ ] **SOPS + age** to encrypt new credentials in repo (post-rotation)
+- [ ] **sda physical pull** + `badblocks -wsv` to evaluate as scratch drive
+- [ ] **sdd ST4000DM000 (39,473h)** is next failure candidate per Backblaze data, plan replacement within 6 months
 
 ## Completed 2026-04-23
 
