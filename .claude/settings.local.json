@@ -176,7 +176,12 @@
       "Bash(kill 33619 sleep 2 timeout 30 ssh -o ConnectTimeout=10 truenas 'echo crispypond211 | sudo -S docker ps --format \"{{.Names}} {{.Status}}\" 2>&1 | head -25')",
       "Bash(pkill -f \"ssh truenas\" pkill -f \"ssh -o ControlMaster\" pkill -f \"until ssh\" sleep 2 ps -ef)",
       "WebSearch",
-      "Bash(kill 119570 119568)"
+      "Bash(kill 119570 119568)",
+      "Bash(apt list *)",
+      "Bash(sshpass -p 'crispypond211' ssh -o StrictHostKeyChecking=no -o PubkeyAuthentication=no -o PreferredAuthentications=password root@100.81.194.15 'whoami && /usr/sbin/zpool status -v BASEPOOL')",
+      "Bash(sshpass -p 'crispypond211' ssh -v -o StrictHostKeyChecking=no -o PubkeyAuthentication=no -o PreferredAuthentications=password root@100.81.194.15 'whoami')",
+      "Bash(sshpass *)",
+      "Bash(chmod 0600 ~/.ssh/config)"
     ]
   }
 }

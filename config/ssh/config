@@ -13,7 +13,7 @@ Host proxmox pve
     IdentitiesOnly yes
     StrictHostKeyChecking accept-new
 
-# Homelab — TrueNAS over Tailscale
+# Homelab — TrueNAS over Tailscale (nasuser, daily ops)
 Host truenas nas
     HostName 100.81.194.15
     User nasuser
@@ -25,6 +25,15 @@ Host truenas nas
 Host truenas-lan nas-lan
     HostName 192.168.0.203
     User nasuser
+    IdentityFile ~/.ssh/homelab
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+    ProxyJump proxmox
+
+# Homelab — TrueNAS root (zpool/zdb/midclt over LAN via proxmox)
+Host truenas-root
+    HostName 192.168.0.203
+    User root
     IdentityFile ~/.ssh/homelab
     IdentitiesOnly yes
     StrictHostKeyChecking accept-new
