@@ -147,21 +147,24 @@ alias aider-gemma-remote="export OLLAMA_API_BASE=http://100.81.194.15:30068 && a
 
 
 # Tmux helpers
-# Diddy - Agent Setup
-export CLAW_BINARY="/workspaces/claw-code-local/rust/target/release/claw"
-alias brain-router="$HOME/dotfiles/bin/brain-router"
-
-
 alias tm='tmux new -s'
 alias tl='tmux ls'
 alias ta='tmux attach -t'
-export PATH="$HOME/dotfiles/bin:/workspaces/dotfiles/bin:$PATH"
 
-# Claw Code Local — direct Ollama, no brain-router
-alias dclaw='/workspaces/dotfiles/bin/homelab-claw'
-alias claw-local='/workspaces/dotfiles/bin/homelab-claw'
-# Aider against local Ollama
-alias daider='/workspaces/dotfiles/bin/homelab-aider'
-# Goose against local Ollama — primary homelab agent (beat aider + claw in bench 2026-04-23)
-alias dgoose='/workspaces/dotfiles/bin/homelab-goose'
-export PATH="$HOME/.local/bin:$PATH"
+# Homelab agent suite — lives in sibling repo "homelab" (cloned next to dotfiles)
+# Falls back to ~/dotfiles/bin if homelab repo not present.
+for HL in /workspaces/homelab "$HOME/homelab"; do
+  if [ -d "$HL/bin" ]; then
+    export PATH="$HL/bin:$PATH"
+    export CLAW_BINARY="${CLAW_BINARY:-/workspaces/claw-code-local/rust/target/release/claw}"
+    alias brain-router="$HL/bin/brain-router"
+    alias dclaw="$HL/bin/homelab-claw"
+    alias claw-local="$HL/bin/homelab-claw"
+    alias daider="$HL/bin/homelab-aider"
+    alias dgoose="$HL/bin/homelab-goose"
+    break
+  fi
+done
+unset HL
+
+export PATH="$HOME/dotfiles/bin:/workspaces/dotfiles/bin:$HOME/.local/bin:$PATH"

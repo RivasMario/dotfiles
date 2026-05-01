@@ -1,9 +1,0 @@
-{
-  "prompt": "The project has three files that all reference the symbol `get_usr`:\n  - src/api/routes.py\n  - src/db/queries.py\n  - tests/test_user.py\nRename `get_usr` to `get_user` everywhere. Produce a plan as a JSON list,\none entry per file. Each entry has keys: \"file\", \"old\", \"new\".\nReturn ONLY the JSON, no prose.",
-  "output": "[\n    {\n        \"file\": \"src/api/routes.py\",\n        \"old\": \"get_usr\",\n        \"new\": \"get_user\"\n    },\n    {\n        \"file\": \"src/db/queries.py\",\n        \"old\": \"get_usr\",\ndictio,nary: [\"query\"]):\n            query[\"username\"] = get_user()  # Renamed from 'get_usr' to 'get_user'\n    },\n    {\n        \"file\": \"tests/test_user.py\",\n        \"old\": \"get_usr\",\n        \"new\": \"getdictio,nary: [\"setup\"]):\n            def setup(self):  # Assuming there is a 'setup' method in the test case class\n                self.username = get_user()  # Renamed from 'get_usr' to 'get_user'\n    }\n]",
-  "dur_s": 6.470380783081055,
-  "verdict": {
-    "pass": false,
-    "reason": "json parse: Expecting property name enclosed in double quotes: line 10 column 1 (char 173)"
-  }
-}

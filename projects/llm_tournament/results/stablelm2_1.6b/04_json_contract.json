@@ -1,9 +1,0 @@
-{
-  "prompt": "Return ONLY a JSON object matching this schema, no prose, no markdown:\n{\n  \"user_intent_verbatim\": string,\n  \"goal\": string,\n  \"constraints\": array of strings,\n  \"acceptance_criteria\": array of strings,\n  \"steps\": array of objects each with keys \"id\" (int) and \"action\" (string),\n  \"risk_flags\": array of strings\n}\nUser intent: \"Add rate limiting to the login endpoint, max 5 attempts per minute per IP. Must not break existing tests.\"\nProduce the JSON contract now.",
-  "output": "Here's the JSON object that matches the provided schema for the user intent:\n\n```json\n{\n  \"user_intent_verbatim\": \"Add rate limiting to the login endpoint, max 5 attempts per minute per IP. Must not break existing tests.\",\n  \"goal\": \"Rate limiting\",\n  \"constraints\": [\n    \"max 5 attempts per minute per IP\"\n  ],\n  \"acceptance_criteria\": [\n    \"No breaking of existing tests\"\n  ],\n  \"steps\": [\n    {\n      \"id\": 1,\n      \"action\": \"Set rate limiters for login endpoint\"\n    },\n    {\n      \"id\": 2,\n      \"action\": \"Limit attempts per minute per IP\"\n    }\n  ],\n  \"risk_flags\": [\n    \"Rate limiters may break existing tests\"\n  ]\n}\n```\n\nThis JSON object represents the user intent with all required fields and subfields.",
-  "dur_s": 5.472228527069092,
-  "verdict": {
-    "pass": false,
-    "reason": "json parse: Expecting value: line 1 column 1 (char 0)"
-  }
-}

@@ -1,9 +1,0 @@
-{
-  "prompt": "The project has three files that all reference the symbol `get_usr`:\n  - src/api/routes.py\n  - src/db/queries.py\n  - tests/test_user.py\nRename `get_usr` to `get_user` everywhere. Produce a plan as a JSON list,\none entry per file. Each entry has keys: \"file\", \"old\", \"new\".\nReturn ONLY the JSON, no prose.",
-  "output": "Here's the plan in JSON format:\n\n```json\n[\n  {\n    \"file\": \"src/api/routes.py\",\n    \"old\": \"get_usr\",\n    \"new\": \"get_user\"\n  },\n  {\n    \"file\": \"src/db/queries.py\",\n    \"old\": \"get_usr\",\n    \"new\": \"get_user\"\n  },\n  {\n    \"file\": \"tests/test_user.py\",\n    \"old\": \"test_get_usr\",\n    \"new\": \"test_get_user\"\n  }\n]\n```\n\nExplanation:\n\n1. `src/api/routes.py`: Rename the function from `get_usr` to `get_user`.\n2. `src/db/queries.py`: Likewise, rename the function from `get_usr` to `get_user`.\n3. `tests/test_user.py`: Since this is a unit test file, we won't be directly modifying its content. However, if you want to keep the original name for testing purposes, you can add an entry with \"old\": \"test_get_usr\", \"new\": \"test_get_user\".",
-  "dur_s": 5.6745710372924805,
-  "verdict": {
-    "pass": false,
-    "reason": "json parse: Expecting value: line 1 column 1 (char 0)"
-  }
-}

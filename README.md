@@ -42,20 +42,17 @@ cd ~/dotfiles && bash install.sh
 exec zsh
 ```
 
-## Split-Brain Agent Suite (2026-04-21)
+## Sibling repos (split out 2026-05-01)
 
-High-performance, protocol-first AI agents optimized for 8GB VRAM (RTX 3060 Ti). These use a **Dual-Brain** strategy: a fast 3B model for planning and a deep 7B model for execution.
+This repo holds shell/editor config only. Other concerns live in sibling repos cloned alongside `dotfiles`:
 
-| Tool | Purpose |
-|------|---------|
-| `claw` | Protocol-first autonomous coding assistant (v6.0 - Rich) |
-| `diddy` | Tactical Navy-inspired agent (planning + execution) |
-| `brain-router` | Background proxy (Port 11435) for automatic model routing |
+| Sibling | Purpose |
+|---------|---------|
+| `homelab` (private) | TrueNAS/Proxmox ops, AI agent harness (goose / aider / claw / diddy / brain-router), local-LLM benchmarks, ops memory sidecars |
+| `skyway96` | 96% keyboard plate DXF + KiCad notes |
+| `llm-tournament` | Local-model bench harness + results |
 
-**Usage:**
-- `claw "Fix the bug in installer.sh"`
-- `diddy drone` (interactive session)
-- `brain-router` (must be running in background for `aider` integration)
+`.zshrc` adds `<homelab>/bin` to `PATH` and aliases `dgoose`, `dclaw`, `daider`, `brain-router` if the homelab repo is cloned at `/workspaces/homelab` or `~/homelab`.
 
 ## Requires
 

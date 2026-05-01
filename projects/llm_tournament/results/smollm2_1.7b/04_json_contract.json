@@ -1,9 +1,0 @@
-{
-  "prompt": "Return ONLY a JSON object matching this schema, no prose, no markdown:\n{\n  \"user_intent_verbatim\": string,\n  \"goal\": string,\n  \"constraints\": array of strings,\n  \"acceptance_criteria\": array of strings,\n  \"steps\": array of objects each with keys \"id\" (int) and \"action\" (string),\n  \"risk_flags\": array of strings\n}\nUser intent: \"Add rate limiting to the login endpoint, max 5 attempts per minute per IP. Must not break existing tests.\"\nProduce the JSON contract now.",
-  "output": "{\n  \"user_intent_verbatim\": \"Add rate limiting to the login endpoint, max 5 attempts per minute per IP. Must not break existing tests.\",\n  \"goal\": \"Add rate limiting to the login endpoint, max 5 attempts per minute per IP.\",\n  \"constraints\": [\"max 5 attempts per minute per IP\"],\n  \"acceptance_criteria\": [\"Must not break existing tests.\"],\n  \"steps\": [\n    {\n      \"id\": 1,\n      \"action\": \"Add rate limiting to the login endpoint\"\n    },\n    {\n      \"id\": 2,\n      \"action\": \"max 5 attempts per minute per IP\"\n    }\n  ],\n  \"risk_flags\": [\"Must not break existing tests.\"]\n}",
-  "dur_s": 5.8937904834747314,
-  "verdict": {
-    "pass": true,
-    "got": "2 steps"
-  }
-}

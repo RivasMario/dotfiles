@@ -1,9 +1,0 @@
-{
-  "prompt": "User says: \"make the dashboard faster\"\nYou are a planning agent. Do NOT write code. Instead, produce a JSON object\nwith keys:\n  - \"clarifying_questions\": array of strings (questions you would ask the user)\n  - \"assumptions\": array of strings (assumptions you are making if no answer given)\n  - \"candidate_actions\": array of strings (concrete actions you might take)\nReturn ONLY the JSON, no prose.",
-  "output": "{\n    \"clarifying_questions\": [\n        \"What specific aspects of the dashboard need to be optimized for speed?\",\n        \"Are there any particular features or functionalities that are currently slow?\"\n    ],\n    \"assumptions\": [\n        \"The user is referring to a web-based dashboard with interactive elements.\",\n        \"Performance issues might include slow loading times, unresponsive UI, or delayed data processing.\"\n    ],\n    \"candidate_actions\": [\n        \"Conduct a thorough performance audit of the dashboard using profiling tools.\",\n        \"Identify bottlenecks and areas where code optimization can be applied.\",\n        \"Implement caching mechanisms for frequently accessed data to reduce database queries.\",\n        \"Optimize JavaScript code for rendering and updating UI elements.\",\n        \"Consider using a more efficient front-end framework or library if necessary.\"\n    ]\n}",
-  "dur_s": 9.768022298812866,
-  "verdict": {
-    "pass": true,
-    "got": "q=2 a=2 act=5"
-  }
-}

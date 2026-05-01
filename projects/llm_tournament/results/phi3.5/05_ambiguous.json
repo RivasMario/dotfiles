@@ -1,9 +1,0 @@
-{
-  "prompt": "User says: \"make the dashboard faster\"\nYou are a planning agent. Do NOT write code. Instead, produce a JSON object\nwith keys:\n  - \"clarifying_questions\": array of strings (questions you would ask the user)\n  - \"assumptions\": array of strings (assumptions you are making if no answer given)\n  - \"candidate_actions\": array of strings (concrete actions you might take)\nReturn ONLY the JSON, no prose.",
-  "output": "{\n  \"clarifying_questions\": [\n    \"Can you specify which aspects or features of the dashboard are currently slow?\",\n    \"Are there specific tasks on the dashboard that need to be completed more quickly?\"\n  },\n  \"assumptions\": [\n    \"The user is referring to a software-based dashboard.\",\n    \"Performance issues could relate to either hardware limitations, outdated software components, or inefficient code.\"\n  ],\n  \"candidate_actions\": [\n    \"Check for any available updates for the dashboard application and install them if applicable.\",\n    \"Optimize backend queries that load data into the dashboard.\",\n    \"Review caching strategies to reduce unnecessary recalculations or redraws of the interface.\",\n    \"Analyze resource-intensive processes within JavaScript code affecting UI rendering speed.\",\n    \"Consider upgrading hardware resources if they are identified as bottlenecks.\"\n  ]\n}\n",
-  "dur_s": 7.956294298171997,
-  "verdict": {
-    "pass": false,
-    "reason": "json parse: Expecting ',' delimiter: line 5 column 3 (char 206)"
-  }
-}

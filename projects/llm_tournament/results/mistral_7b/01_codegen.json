@@ -1,9 +1,0 @@
-{
-  "prompt": "Write a Python function named `fizzbuzz(n)` that returns a list of strings of length n.\nFor each i from 1 to n:\n  - multiples of 3 AND 5 -> \"FizzBuzz\"\n  - multiples of 3 only  -> \"Fizz\"\n  - multiples of 5 only  -> \"Buzz\"\n  - else                 -> str(i)\nReturn ONLY the Python code, no prose, no markdown fences.",
-  "output": " Here is the Python function `fizzbuzz(n)` as requested:\n\n```python\ndef fizzbuzz(n):\n    result = []\n    for i in range(1, n+1):\n        if i % 3 == 0 and i % 5 == 0:\n            result.append(\"FizzBuzz\")\n        elif i % 3 == 0:\n            result.append(\"Fizz\")\n        elif i % 5 == 0:\n            result.append(\"Buzz\")\n        else:\n            result.append(str(i))\n    return result\n```",
-  "dur_s": 34.41311717033386,
-  "verdict": {
-    "pass": false,
-    "reason": "SyntaxError: invalid syntax (<string>, line 1)"
-  }
-}
