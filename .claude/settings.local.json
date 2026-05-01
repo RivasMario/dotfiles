@@ -181,7 +181,28 @@
       "Bash(sshpass -p 'crispypond211' ssh -o StrictHostKeyChecking=no -o PubkeyAuthentication=no -o PreferredAuthentications=password root@100.81.194.15 'whoami && /usr/sbin/zpool status -v BASEPOOL')",
       "Bash(sshpass -p 'crispypond211' ssh -v -o StrictHostKeyChecking=no -o PubkeyAuthentication=no -o PreferredAuthentications=password root@100.81.194.15 'whoami')",
       "Bash(sshpass *)",
-      "Bash(chmod 0600 ~/.ssh/config)"
+      "Bash(chmod 0600 ~/.ssh/config)",
+      "Bash(tailscale ping *)",
+      "Bash(curl -s --socks5-hostname 127.0.0.1:1055 -o /dev/null -w \"proxy_ok=%{http_code}\\\\n\" -m 5 http://100.70.69.28:8006)",
+      "Read(//tmp/**)",
+      "Read(//root/**)",
+      "Bash(rm ~/.ssh/config)",
+      "Read(//home/**)",
+      "Bash(sudo ls *)",
+      "Bash(env)",
+      "Bash(pip3 show *)",
+      "Bash(sudo apt *)",
+      "Bash(mkdir -p /tmp/split-stage)",
+      "Bash(sudo mkdir *)",
+      "Bash(sudo chown *)",
+      "Bash(sudo mv *)",
+      "Bash(rmdir /workspaces/split-stage)",
+      "Bash(sudo rmdir *)",
+      "Bash(gh auth *)",
+      "Bash(ssh-keygen -t ed25519 -f ~/.ssh/github -N \"\" -C \"vscode@devcontainer-github-2026-05-01\")",
+      "Bash(chmod 600 ~/.ssh/github)",
+      "Bash(curl -s -o /dev/null -w \"anon_status=%{http_code}\\\\n\" https://github.com/RivasMario/homelab)",
+      "Bash(curl -s -o /dev/null -w \"anon_clone_status=%{http_code}\\\\n\" https://github.com/RivasMario/homelab.git/info/refs?service=git-upload-pack)"
     ]
   }
 }
