@@ -83,12 +83,20 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 # -----------------------------------------------------------------------------
 # POKEMON COLORSCRIPTS
 # -----------------------------------------------------------------------------
-if ! command -v pokemon-colorscripts &>/dev/null; then
+# Use absolute-path test, not `command -v` — WSL PATH inherits a Windows
+# pokemon-colorscripts shim from /mnt/c/.../.local/bin that points at
+# python.exe via a broken `/c/...` path. `command -v` matches it and skips
+# the real install.
+if [ ! -x /usr/local/bin/pokemon-colorscripts ] || [ ! -d /usr/local/opt/pokemon-colorscripts ]; then
     echo "==> Installing pokemon-colorscripts..."
     cd "$DOTFILES/pokemon-colorscripts"
     PYTHON_CMD=$(command -v python3 || command -v python)
     if [ -n "$PYTHON_CMD" ]; then
         sudo bash install.sh
+        # Vendored install.sh `cp`s pokemon-colorscripts.py without +x; the
+        # symlink in /usr/local/bin then can't execute. Some checkouts also
+        # land the source file as 0644 despite git tracking 0755.
+        sudo chmod +x /usr/local/opt/pokemon-colorscripts/pokemon-colorscripts.py 2>/dev/null || true
     else
         echo "  [!] Python not found, skipping pokemon-colorscripts installation."
     fi
