@@ -11,7 +11,6 @@
       "Bash(claude plugin *)"
     ]
   },
-  "model": "opus[1m]",
   "enabledPlugins": {
     "caveman@caveman": true,
     "andrej-karpathy-skills@karpathy-skills": true
