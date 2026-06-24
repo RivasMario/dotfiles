@@ -133,6 +133,7 @@ link() {
 mkdir -p "$HOME/.config/fastfetch"
 mkdir -p "$HOME/.ssh"
 mkdir -p "$HOME/.claude"
+mkdir -p "$HOME/.gemini/config"
 
 link "$DOTFILES/.tmux.conf"                              "$HOME/.tmux.conf"
 link "$DOTFILES/.tmux-help.txt"                          "$HOME/.tmux-help.txt"
@@ -140,6 +141,8 @@ link "$DOTFILES/.zshrc"                                  "$HOME/.zshrc"
 link "$DOTFILES/config/fastfetch/config-pokemon.jsonc"   "$HOME/.config/fastfetch/config-pokemon.jsonc"
 link "$DOTFILES/config/ssh/config"                       "$HOME/.ssh/config"
 link "$DOTFILES/.claude/settings.json"                   "$HOME/.claude/settings.json"
+link "$DOTFILES/.gemini/config/mcp_config.json"          "$HOME/.gemini/config/mcp_config.json"
+link "$DOTFILES/.gemini/skills"                          "$HOME/.gemini/config/skills"
 
 # -----------------------------------------------------------------------------
 # NPM GLOBAL PREFIX

@@ -13,7 +13,8 @@
   },
   "enabledPlugins": {
     "caveman@caveman": true,
-    "andrej-karpathy-skills@karpathy-skills": true
+    "andrej-karpathy-skills@karpathy-skills": true,
+    "rust-analyzer-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
