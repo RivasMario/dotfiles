@@ -153,16 +153,16 @@ npm config set prefix '~/.npm-global'
 export PATH=~/.npm-global/bin:$PATH
 
 # -----------------------------------------------------------------------------
-# TOOLS (Claude, Gemini)
+# TOOLS (Claude, Antigravity)
 # -----------------------------------------------------------------------------
 if ! command -v claude &>/dev/null; then
     echo "==> Installing Claude Code..."
     npm install -g @anthropic-ai/claude-code
 fi
 
-if ! command -v gemini &>/dev/null; then
-    echo "==> Installing Gemini CLI..."
-    npm install -g @google/gemini-cli
+if ! command -v agy &>/dev/null; then
+    echo "==> Installing Antigravity CLI..."
+    curl -fsSL https://antigravity.google/cli/install.sh | bash
 fi
 
 # Plugins/Extensions
@@ -170,8 +170,8 @@ if command -v claude &>/dev/null; then
     yes | claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true
     yes | claude plugin install caveman@caveman 2>/dev/null || true
 fi
-if command -v gemini &>/dev/null; then
-    yes | gemini extensions install https://github.com/JuliusBrussee/caveman 2>/dev/null || true
+if command -v agy &>/dev/null; then
+    yes | agy extensions install https://github.com/JuliusBrussee/caveman 2>/dev/null || true
 fi
 
 # -----------------------------------------------------------------------------
