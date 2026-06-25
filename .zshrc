@@ -169,3 +169,7 @@ unset HL
 
 export PATH="$HOME/dotfiles/bin:/workspaces/dotfiles/bin:$HOME/.local/bin:$PATH"
 . "$HOME/.cargo/env"
+
+
+# Added by Antigravity CLI installer
+export PATH="/home/diddy/.local/bin:$PATH"
