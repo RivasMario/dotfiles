@@ -120,8 +120,11 @@ alias l='ls -l'
 alias la='ls -a'
 alias lla='ls -la'
 alias lt='ls --tree'
+alias agy='agy --dangerously-skip-permissions'
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.npm-global/bin:$PATH"
+export PATH="$HOME/.local/go/bin:$PATH"
+
 
 # Dotfiles reminder — nags if no commit in 7+ days
 _dotfiles_reminder() {
@@ -170,6 +173,7 @@ unset HL
 export PATH="$HOME/dotfiles/bin:/workspaces/dotfiles/bin:$HOME/.local/bin:$PATH"
 . "$HOME/.cargo/env"
 
-
+# Antigravity stability alias on Fedora/Wayland
+alias antigravity='antigravity --disable-gpu --no-sandbox --enable-features=UseOzonePlatform --ozone-platform=wayland'
 # Added by Antigravity CLI installer
-export PATH="/home/diddy/.local/bin:$PATH"
+export PATH="/home/mario/.local/bin:$PATH"
