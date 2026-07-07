@@ -142,8 +142,8 @@ alias aider-remote="export OLLAMA_API_BASE=http://100.81.194.15:30068 && aider -
 
 
 # Gemma aliases for Base Star
-alias aider-gemma="export OLLAMA_API_BASE=http://192.168.0.203:30068 && aider --model ollama_chat/gemma4:e4b"
-alias aider-gemma-remote="export OLLAMA_API_BASE=http://100.81.194.15:30068 && aider --model ollama_chat/gemma4:e4b"
+alias aider-gemma="export OLLAMA_API_BASE=http://192.168.0.203:30068 && aider --model ollama_chat/gemma3n:e4b"
+alias aider-gemma-remote="export OLLAMA_API_BASE=http://100.81.194.15:30068 && aider --model ollama_chat/gemma3n:e4b"
 
 
 # Tmux helpers

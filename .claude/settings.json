@@ -31,5 +31,6 @@
     }
   },
   "effortLevel": "high",
-  "theme": "dark"
+  "theme": "dark",
+  "tui": "fullscreen"
 }
