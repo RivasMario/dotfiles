@@ -46,7 +46,7 @@ Write-Host "==> Installing zsh + tmux via MSYS2..."
 Write-Host "  [ok] zsh + tmux"
 
 # -----------------------------------------------------------------------------
-# PATH — add MSYS2, Python, ~/.local/bin permanently
+# PATH — add MSYS2, Python, agy, ~/.local/bin permanently
 # -----------------------------------------------------------------------------
 Write-Host ""
 Write-Host "==> Configuring PATH..."
@@ -54,6 +54,7 @@ $pathsToAdd = @(
     "C:\msys64\usr\bin",
     "C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python312",
     "C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python312\Scripts",
+    "C:\Users\$env:USERNAME\AppData\Local\agy\bin",
     "C:\Users\$env:USERNAME\.local\bin",
     "C:\Users\$env:USERNAME\.npm-global\bin"
 )
@@ -167,12 +168,62 @@ foreach ($app in @("gimp", "inkscape")) {
     }
 }
 
-# Caveman plugin for Claude Code
+# -----------------------------------------------------------------------------
+# GRAPHIFY (Knowledge Graph & Codebase Intelligence)
+# -----------------------------------------------------------------------------
 Write-Host ""
-Write-Host "==> Installing Claude Code plugins..."
+Write-Host "==> Installing Graphify (codebase knowledge graph)..."
+& $python -m pip install graphifyy --quiet
+Write-Host "  [ok] graphifyy Python package"
+
+# -----------------------------------------------------------------------------
+# AI ASSISTANT PLUGINS & SKILLS (Claude Code, Antigravity, Gemini CLI)
+# -----------------------------------------------------------------------------
+Write-Host ""
+Write-Host "==> Installing AI Assistant plugins & skills..."
+
+# Caveman plugin for Claude Code
 bash -c "yes | claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true" 2>&1 | Out-Null
 bash -c "yes | claude plugin install caveman@caveman 2>/dev/null || true" 2>&1 | Out-Null
-Write-Host "  [ok] caveman plugin"
+Write-Host "  [ok] caveman plugin (Claude Code)"
+
+# Skills for Claude Code & Antigravity / Gemini CLI
+$claudeSkillsDir = "$userHome\.claude\skills"
+$geminiConfigSkillsDir = "$userHome\.gemini\config\skills"
+$geminiSkillsDir = "$userHome\.gemini\skills"
+New-Item -ItemType Directory -Force -Path $claudeSkillsDir, $geminiConfigSkillsDir, $geminiSkillsDir | Out-Null
+
+foreach ($skill in @("context-audit", "graphify")) {
+    # Claude Code skill
+    $srcClaude = "$dotfiles\.claude\skills\$skill"
+    if (Test-Path $srcClaude) {
+        $destClaude = "$claudeSkillsDir\$skill"
+        New-Item -ItemType Directory -Force -Path $destClaude | Out-Null
+        Copy-Item "$srcClaude\*" $destClaude -Recurse -Force
+    }
+
+    # Antigravity / Gemini CLI skill
+    $srcGemini = "$dotfiles\.gemini\skills\$skill"
+    if (Test-Path $srcGemini) {
+        foreach ($targetDir in @($geminiConfigSkillsDir, $geminiSkillsDir)) {
+            $dest = "$targetDir\$skill"
+            New-Item -ItemType Directory -Force -Path $dest | Out-Null
+            Copy-Item "$srcGemini\*" $dest -Recurse -Force
+        }
+    }
+    Write-Host "  [ok] $skill skill"
+}
+
+# Plugins bundle (graphify)
+$graphifyPluginSrc = "$dotfiles\plugins\graphify"
+if (Test-Path $graphifyPluginSrc) {
+    $claudePluginDst = "$userHome\.claude\plugins\graphify"
+    $geminiPluginDst = "$userHome\.gemini\config\plugins\graphify"
+    New-Item -ItemType Directory -Force -Path $claudePluginDst, $geminiPluginDst | Out-Null
+    Copy-Item "$graphifyPluginSrc\*" $claudePluginDst -Recurse -Force
+    Copy-Item "$graphifyPluginSrc\*" $geminiPluginDst -Recurse -Force
+    Write-Host "  [ok] graphify plugin (Claude Code & Antigravity)"
+}
 
 # -----------------------------------------------------------------------------
 # SYMLINK DOTFILES (hard links on Windows)
@@ -180,7 +231,6 @@ Write-Host "  [ok] caveman plugin"
 Write-Host ""
 Write-Host "==> Linking dotfiles..."
 New-Item -ItemType Directory -Force -Path "$userHome\.config\fastfetch" | Out-Null
-
 New-Item -ItemType Directory -Force -Path "$userHome\.claude" | Out-Null
 
 $links = @(
@@ -188,7 +238,10 @@ $links = @(
     @{ src = "$dotfiles\.tmux-help.txt"; dst = "$userHome\.tmux-help.txt" },
     @{ src = "$dotfiles\.zshrc";        dst = "$userHome\.zshrc" },
     @{ src = "$dotfiles\config\fastfetch\config-pokemon.jsonc"; dst = "$userHome\.config\fastfetch\config-pokemon.jsonc" },
-    @{ src = "$dotfiles\.claude\settings.json"; dst = "$userHome\.claude\settings.json" }
+    @{ src = "$dotfiles\.claude\settings.json"; dst = "$userHome\.claude\settings.json" },
+    @{ src = "$dotfiles\AGENTS.md";     dst = "$userHome\AGENTS.md" },
+    @{ src = "$dotfiles\GEMINI.md";     dst = "$userHome\GEMINI.md" },
+    @{ src = "$dotfiles\CLAUDE.md";     dst = "$userHome\CLAUDE.md" }
 )
 foreach ($link in $links) {
     if (Test-Path $link.dst) { Remove-Item $link.dst -Force }
@@ -202,6 +255,8 @@ Write-Host "==> Done! Open a new terminal and run: zsh" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  - Log in to Claude Code: claude"
+Write-Host "  - Log in to Antigravity: agy"
 Write-Host "  - Log in to Gemini CLI:  gemini"
 Write-Host "  - Connect Tailscale:     tailscale up --accept-dns=false --accept-routes"
+Write-Host "  - Build knowledge graph: /graphify ."
 Write-Host "  - Generate KiCad CLI:    /cli-anything:cli-anything https://github.com/KiCad/kicad-source-mirror"

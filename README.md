@@ -87,4 +87,6 @@ cd ~/dotfiles && git add . && git commit -m "add: something config" && git push
 | GIMP, Inkscape | Image editing |
 | Tailscale | Homelab VPN |
 | CLI-Anything | Agent-native CLI for GIMP, Inkscape, KiCad |
-| caveman | Claude Code plugin |
+| caveman | Claude Code / Antigravity token reduction plugin |
+| graphify | Codebase knowledge graph & architecture mapper (`/graphify`) |
+| Antigravity (`agy`) | Multi-agent autonomous coding system |

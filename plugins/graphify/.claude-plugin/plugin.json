@@ -1,0 +1,20 @@
+{
+  "name": "graphify",
+  "description": "Turn any input (code, docs, papers, images, videos) into a persistent knowledge graph with god nodes, community detection, and query/path/explain tools",
+  "version": "1.0.0",
+  "author": {
+    "name": "Graphify-Labs"
+  },
+  "license": "MIT",
+  "keywords": [
+    "graph",
+    "knowledge-graph",
+    "ast",
+    "tree-sitter",
+    "visualization",
+    "graphify"
+  ],
+  "skills": [
+    "./skills/graphify"
+  ]
+}

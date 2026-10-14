@@ -25,11 +25,11 @@ if [ -z "$SKIP_PACKAGES" ]; then
     echo "==> Installing packages..."
     if command -v dnf &>/dev/null; then
         sudo dnf install -y \
-            tmux zsh fzf fastfetch git curl nodejs npm python3 lsd libsecret tailscale sshpass
+            tmux zsh fzf fastfetch git curl nodejs npm python3 python3-pip lsd libsecret tailscale sshpass
     elif command -v apt-get &>/dev/null; then
         sudo apt-get update
         sudo apt-get install -y \
-            tmux zsh fzf git curl nodejs npm python3 libsecret-1-0 sshpass || true
+            tmux zsh fzf git curl nodejs npm python3 python3-pip python3-venv libsecret-1-0 sshpass || true
         # fastfetch and lsd not in standard apt repos — install separately
         if ! command -v fastfetch &>/dev/null; then
             FASTFETCH_DEB=$(mktemp --suffix=.deb)
@@ -142,7 +142,10 @@ link "$DOTFILES/config/fastfetch/config-pokemon.jsonc"   "$HOME/.config/fastfetc
 link "$DOTFILES/config/ssh/config"                       "$HOME/.ssh/config"
 link "$DOTFILES/.claude/settings.json"                   "$HOME/.claude/settings.json"
 link "$DOTFILES/.gemini/config/mcp_config.json"          "$HOME/.gemini/config/mcp_config.json"
-link "$DOTFILES/.gemini/skills"                          "$HOME/.gemini/config/skills"
+link "$DOTFILES/AGENTS.md"                               "$HOME/AGENTS.md"
+link "$DOTFILES/GEMINI.md"                               "$HOME/GEMINI.md"
+link "$DOTFILES/CLAUDE.md"                               "$HOME/CLAUDE.md"
+
 
 # -----------------------------------------------------------------------------
 # NPM GLOBAL PREFIX
@@ -153,7 +156,7 @@ npm config set prefix '~/.npm-global'
 export PATH=~/.npm-global/bin:$PATH
 
 # -----------------------------------------------------------------------------
-# TOOLS (Claude, Antigravity)
+# TOOLS (Claude, Antigravity, Graphify)
 # -----------------------------------------------------------------------------
 if ! command -v claude &>/dev/null; then
     echo "==> Installing Claude Code..."
@@ -165,13 +168,48 @@ if ! command -v agy &>/dev/null; then
     curl -fsSL https://antigravity.google/cli/install.sh | bash
 fi
 
-# Plugins/Extensions
+# Graphify (codebase knowledge graph)
+if ! python3 -c "import graphify" &>/dev/null; then
+    echo "==> Installing Graphify..."
+    python3 -m pip install --user graphifyy 2>/dev/null || pip install --user graphifyy 2>/dev/null || pipx install graphifyy 2>/dev/null || true
+fi
+
+# -----------------------------------------------------------------------------
+# AI ASSISTANT PLUGINS & SKILLS
+# -----------------------------------------------------------------------------
+echo "==> Installing AI Assistant plugins & skills..."
+
+# Caveman plugin
 if command -v claude &>/dev/null; then
     yes | claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true
     yes | claude plugin install caveman@caveman 2>/dev/null || true
 fi
 if command -v agy &>/dev/null; then
     yes | agy extensions install https://github.com/JuliusBrussee/caveman 2>/dev/null || true
+fi
+
+# Skills: context-audit & graphify for Claude Code and Antigravity / Gemini CLI
+mkdir -p "$HOME/.claude/skills" "$HOME/.gemini/config/skills" "$HOME/.gemini/skills" "$HOME/.claude/plugins" "$HOME/.gemini/config/plugins"
+
+for skill in context-audit graphify; do
+    if [ -d "$DOTFILES/.claude/skills/$skill" ]; then
+        mkdir -p "$HOME/.claude/skills/$skill"
+        cp -r "$DOTFILES/.claude/skills/$skill/"* "$HOME/.claude/skills/$skill/"
+    fi
+    if [ -d "$DOTFILES/.gemini/skills/$skill" ]; then
+        mkdir -p "$HOME/.gemini/config/skills/$skill" "$HOME/.gemini/skills/$skill"
+        cp -r "$DOTFILES/.gemini/skills/$skill/"* "$HOME/.gemini/config/skills/$skill/"
+        cp -r "$DOTFILES/.gemini/skills/$skill/"* "$HOME/.gemini/skills/$skill/"
+    fi
+    echo "  [ok] $skill skill"
+done
+
+# Plugins: graphify bundle
+if [ -d "$DOTFILES/plugins/graphify" ]; then
+    mkdir -p "$HOME/.claude/plugins/graphify" "$HOME/.gemini/config/plugins/graphify"
+    cp -r "$DOTFILES/plugins/graphify/"* "$HOME/.claude/plugins/graphify/"
+    cp -r "$DOTFILES/plugins/graphify/"* "$HOME/.gemini/config/plugins/graphify/"
+    echo "  [ok] graphify plugin (Claude & Antigravity)"
 fi
 
 # -----------------------------------------------------------------------------

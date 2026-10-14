@@ -8,13 +8,17 @@
       "Bash(ls /.dockerenv)",
       "Read(//proc/1/**)",
       "Bash(tee /tmp/ts-up.log)",
-      "Bash(claude plugin *)"
+      "Bash(claude plugin *)",
+      "Bash(graphify *)",
+      "Bash(python* -m graphify *)",
+      "Bash(pip install graphifyy*)"
     ]
   },
   "enabledPlugins": {
     "caveman@caveman": true,
     "andrej-karpathy-skills@karpathy-skills": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "graphify": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
