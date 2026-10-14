@@ -193,7 +193,8 @@ $geminiConfigSkillsDir = "$userHome\.gemini\config\skills"
 $geminiSkillsDir = "$userHome\.gemini\skills"
 New-Item -ItemType Directory -Force -Path $claudeSkillsDir, $geminiConfigSkillsDir, $geminiSkillsDir | Out-Null
 
-foreach ($skill in @("context-audit", "graphify")) {
+$availableSkills = Get-ChildItem -Directory "$dotfiles\.claude\skills" | Select-Object -ExpandProperty Name
+foreach ($skill in $availableSkills) {
     # Claude Code skill
     $srcClaude = "$dotfiles\.claude\skills\$skill"
     if (Test-Path $srcClaude) {
@@ -213,6 +214,7 @@ foreach ($skill in @("context-audit", "graphify")) {
     }
     Write-Host "  [ok] $skill skill"
 }
+
 
 # Plugins bundle (graphify)
 $graphifyPluginSrc = "$dotfiles\plugins\graphify"

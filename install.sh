@@ -191,18 +191,20 @@ fi
 # Skills: context-audit & graphify for Claude Code and Antigravity / Gemini CLI
 mkdir -p "$HOME/.claude/skills" "$HOME/.gemini/config/skills" "$HOME/.gemini/skills" "$HOME/.claude/plugins" "$HOME/.gemini/config/plugins"
 
-for skill in context-audit graphify; do
-    if [ -d "$DOTFILES/.claude/skills/$skill" ]; then
+if [ -d "$DOTFILES/.claude/skills" ]; then
+    for skill_dir in "$DOTFILES/.claude/skills"/*; do
+        [ -d "$skill_dir" ] || continue
+        skill="$(basename "$skill_dir")"
         mkdir -p "$HOME/.claude/skills/$skill"
-        cp -r "$DOTFILES/.claude/skills/$skill/"* "$HOME/.claude/skills/$skill/"
-    fi
-    if [ -d "$DOTFILES/.gemini/skills/$skill" ]; then
-        mkdir -p "$HOME/.gemini/config/skills/$skill" "$HOME/.gemini/skills/$skill"
-        cp -r "$DOTFILES/.gemini/skills/$skill/"* "$HOME/.gemini/config/skills/$skill/"
-        cp -r "$DOTFILES/.gemini/skills/$skill/"* "$HOME/.gemini/skills/$skill/"
-    fi
-    echo "  [ok] $skill skill"
-done
+        cp -r "$skill_dir/"* "$HOME/.claude/skills/$skill/"
+        if [ -d "$DOTFILES/.gemini/skills/$skill" ]; then
+            mkdir -p "$HOME/.gemini/config/skills/$skill" "$HOME/.gemini/skills/$skill"
+            cp -r "$DOTFILES/.gemini/skills/$skill/"* "$HOME/.gemini/config/skills/$skill/"
+            cp -r "$DOTFILES/.gemini/skills/$skill/"* "$HOME/.gemini/skills/$skill/"
+        fi
+        echo "  [ok] $skill skill"
+    done
+fi
 
 # Plugins: graphify bundle
 if [ -d "$DOTFILES/plugins/graphify" ]; then
