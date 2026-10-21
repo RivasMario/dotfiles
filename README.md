@@ -33,6 +33,8 @@ Once linked, all `git push` operations will use this key automatically.
 git clone https://github.com/RivasMario/dotfiles.git $env:USERPROFILE\dotfiles
 cd $env:USERPROFILE\dotfiles
 .\install.ps1
+# off the home network and need Windows Tailscale to reach the homelab:
+.\install.ps1 -OffHomeNetwork
 ```
 
 ### Linux / Fedora / Ubuntu
@@ -85,7 +87,7 @@ cd ~/dotfiles && git add . && git commit -m "add: something config" && git push
 | Node.js 22 | Claude Code, Gemini CLI |
 | Calibre | ebook → PDF conversion |
 | GIMP, Inkscape | Image editing |
-| Tailscale | Homelab VPN |
+| Tailscale | Homelab VPN (only with `-OffHomeNetwork`; otherwise use the Fedora WSL Tailscale) |
 | CLI-Anything | Agent-native CLI for GIMP, Inkscape, KiCad |
 | caveman | Claude Code / Antigravity token reduction plugin |
 | graphify | Codebase knowledge graph & architecture mapper (`/graphify`) |
