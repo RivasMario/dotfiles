@@ -187,33 +187,27 @@ bash -c "yes | claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null |
 bash -c "yes | claude plugin install caveman@caveman 2>/dev/null || true" 2>&1 | Out-Null
 Write-Host "  [ok] caveman plugin (Claude Code)"
 
-# Skills for Claude Code & Antigravity / Gemini CLI
+# Skills: shared skills\ go to every agent, then .claude\skills and .gemini\skills
+# overlay tool-specific skills (or override a shared one of the same name)
 $claudeSkillsDir = "$userHome\.claude\skills"
 $geminiConfigSkillsDir = "$userHome\.gemini\config\skills"
 $geminiSkillsDir = "$userHome\.gemini\skills"
 New-Item -ItemType Directory -Force -Path $claudeSkillsDir, $geminiConfigSkillsDir, $geminiSkillsDir | Out-Null
 
-$availableSkills = Get-ChildItem -Directory "$dotfiles\.claude\skills" | Select-Object -ExpandProperty Name
-foreach ($skill in $availableSkills) {
-    # Claude Code skill
-    $srcClaude = "$dotfiles\.claude\skills\$skill"
-    if (Test-Path $srcClaude) {
-        $destClaude = "$claudeSkillsDir\$skill"
-        New-Item -ItemType Directory -Force -Path $destClaude | Out-Null
-        Copy-Item "$srcClaude\*" $destClaude -Recurse -Force
-    }
-
-    # Antigravity / Gemini CLI skill
-    $srcGemini = "$dotfiles\.gemini\skills\$skill"
-    if (Test-Path $srcGemini) {
-        foreach ($targetDir in @($geminiConfigSkillsDir, $geminiSkillsDir)) {
-            $dest = "$targetDir\$skill"
-            New-Item -ItemType Directory -Force -Path $dest | Out-Null
-            Copy-Item "$srcGemini\*" $dest -Recurse -Force
+function Install-Skills($src, [string[]]$targets) {
+    if (!(Test-Path $src)) { return }
+    foreach ($skillDir in Get-ChildItem -Directory $src) {
+        foreach ($targetDir in $targets) {
+            $dest = "$targetDir\$($skillDir.Name)"
+            if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+            Copy-Item $skillDir.FullName $dest -Recurse -Force
         }
+        Write-Host "  [ok] $($skillDir.Name) skill ($(Split-Path -Leaf (Split-Path $src))\$(Split-Path -Leaf $src))"
     }
-    Write-Host "  [ok] $skill skill"
 }
+Install-Skills "$dotfiles\skills"         @($claudeSkillsDir, $geminiConfigSkillsDir, $geminiSkillsDir)
+Install-Skills "$dotfiles\.claude\skills" @($claudeSkillsDir)
+Install-Skills "$dotfiles\.gemini\skills" @($geminiConfigSkillsDir, $geminiSkillsDir)
 
 
 # Plugins bundle (graphify)

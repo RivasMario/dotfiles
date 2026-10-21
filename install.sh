@@ -141,7 +141,6 @@ link "$DOTFILES/.zshrc"                                  "$HOME/.zshrc"
 link "$DOTFILES/config/fastfetch/config-pokemon.jsonc"   "$HOME/.config/fastfetch/config-pokemon.jsonc"
 link "$DOTFILES/config/ssh/config"                       "$HOME/.ssh/config"
 link "$DOTFILES/.claude/settings.json"                   "$HOME/.claude/settings.json"
-link "$DOTFILES/.gemini/config/mcp_config.json"          "$HOME/.gemini/config/mcp_config.json"
 link "$DOTFILES/AGENTS.md"                               "$HOME/AGENTS.md"
 link "$DOTFILES/GEMINI.md"                               "$HOME/GEMINI.md"
 link "$DOTFILES/CLAUDE.md"                               "$HOME/CLAUDE.md"
@@ -188,23 +187,26 @@ if command -v agy &>/dev/null; then
     yes | agy extensions install https://github.com/JuliusBrussee/caveman 2>/dev/null || true
 fi
 
-# Skills: context-audit & graphify for Claude Code and Antigravity / Gemini CLI
+# Skills: shared skills/ go to every agent, then .claude/skills and .gemini/skills
+# overlay tool-specific skills (or override a shared one of the same name)
 mkdir -p "$HOME/.claude/skills" "$HOME/.gemini/config/skills" "$HOME/.gemini/skills" "$HOME/.claude/plugins" "$HOME/.gemini/config/plugins"
 
-if [ -d "$DOTFILES/.claude/skills" ]; then
-    for skill_dir in "$DOTFILES/.claude/skills"/*; do
+install_skills() {
+    local src="$1"; shift
+    [ -d "$src" ] || return 0
+    for skill_dir in "$src"/*; do
         [ -d "$skill_dir" ] || continue
         skill="$(basename "$skill_dir")"
-        mkdir -p "$HOME/.claude/skills/$skill"
-        cp -r "$skill_dir/"* "$HOME/.claude/skills/$skill/"
-        if [ -d "$DOTFILES/.gemini/skills/$skill" ]; then
-            mkdir -p "$HOME/.gemini/config/skills/$skill" "$HOME/.gemini/skills/$skill"
-            cp -r "$DOTFILES/.gemini/skills/$skill/"* "$HOME/.gemini/config/skills/$skill/"
-            cp -r "$DOTFILES/.gemini/skills/$skill/"* "$HOME/.gemini/skills/$skill/"
-        fi
-        echo "  [ok] $skill skill"
+        for target in "$@"; do
+            rm -rf "$target/$skill"
+            cp -r "$skill_dir" "$target/$skill"
+        done
+        echo "  [ok] $skill skill ($(basename "$(dirname "$src")")/$(basename "$src"))"
     done
-fi
+}
+install_skills "$DOTFILES/skills"         "$HOME/.claude/skills" "$HOME/.gemini/config/skills" "$HOME/.gemini/skills"
+install_skills "$DOTFILES/.claude/skills" "$HOME/.claude/skills"
+install_skills "$DOTFILES/.gemini/skills" "$HOME/.gemini/config/skills" "$HOME/.gemini/skills"
 
 # Plugins: graphify bundle
 if [ -d "$DOTFILES/plugins/graphify" ]; then
