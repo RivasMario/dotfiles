@@ -1,15 +1,9 @@
 # =============================================================================
 # install.ps1 — Mario's dotfiles bootstrap for Windows
 # Run from an elevated PowerShell prompt or with winget available.
-#
-# -OffHomeNetwork  Also install Windows Tailscale, for machines that are off the
-#                  home network and need it to reach the homelab. Otherwise the
-#                  homelab is reached through the Fedora WSL Tailscale.
+# Tailscale is deliberately not installed on Windows: the homelab is reached
+# only through the Fedora WSL Tailscale (install.sh).
 # =============================================================================
-
-param(
-    [switch]$OffHomeNetwork
-)
 
 $ErrorActionPreference = "Stop"
 $dotfiles = Split-Path -Parent $MyInvocation.MyCommand.Definition
@@ -34,9 +28,6 @@ $packages = @(
     @{ id = "GIMP.GIMP";               name = "GIMP" },
     @{ id = "Inkscape.Inkscape";        name = "Inkscape" }
 )
-if ($OffHomeNetwork) {
-    $packages += @{ id = "tailscale.tailscale"; name = "Tailscale" }
-}
 
 foreach ($pkg in $packages) {
     $installed = winget list --id $pkg.id 2>$null | Select-String $pkg.id
@@ -263,8 +254,5 @@ Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  - Log in to Claude Code: claude"
 Write-Host "  - Log in to Antigravity: agy"
 Write-Host "  - Log in to Gemini CLI:  gemini"
-if ($OffHomeNetwork) {
-    Write-Host "  - Connect Tailscale:     tailscale up --accept-dns=false --accept-routes"
-}
 Write-Host "  - Build knowledge graph: /graphify ."
 Write-Host "  - Generate KiCad CLI:    /cli-anything:cli-anything https://github.com/KiCad/kicad-source-mirror"

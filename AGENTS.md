@@ -61,6 +61,6 @@ This repo contains **shell and editor configuration only**. Other domains live i
 
 ## Commands
 - **Install (Linux/macOS):** `bash install.sh`
-- **Install (Windows):** `powershell -ExecutionPolicy Bypass -File install.ps1` (add `-OffHomeNetwork` only when the machine is off the home network and needs Windows Tailscale to reach the homelab)
+- **Install (Windows):** `powershell -ExecutionPolicy Bypass -File install.ps1` (no Tailscale on Windows; the homelab is reached only through the Linux/WSL Tailscale from `install.sh`)
 - **Reload Shell:** `exec zsh`
 - **Verify Links:** `ls -la ~ | grep '\->'` (Linux) or `fsutil hardlink list $HOME\.zshrc` (Windows)
