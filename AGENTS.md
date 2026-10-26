@@ -12,6 +12,7 @@ Canonical, tool-neutral rules for every agent in this workspace (**Antigravity `
   - Node.js 22 (uses `~/.npm-global` prefix without `sudo`)
   - AI Assistants: **Antigravity (`agy`)**, **Claude Code (`claude`)**, **Gemini CLI (`gemini`)**
   - Tooling & Extensions: **Graphify (`graphifyy`)**, **Caveman**, **CLI-Anything**
+  - Reverse engineering: **REA** (MCP, "Reverse Engineer Anything" — binaries/apps/runtime). Upstream [morluto/rea](https://github.com/morluto/rea); cloned at `~/rea`. Install deps there with `npx rea-agents setup`; wire the MCP server per-machine (keep its config out of this repo). Useful for the `open-astro-cps` DLL disassembly work.
 
 ## Sibling Repos (split out 2026-05-01)
 This repo contains **shell and editor configuration only**. Other domains live in sibling repos cloned alongside:
