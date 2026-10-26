@@ -2,7 +2,8 @@
 github
 github.pub
 
-# AI Agent Logs & Artifacts
+# Nested repositories / external submodules
+CLI-Anything/
 brain-router.log
 nohup.out
 tailscaled.state
