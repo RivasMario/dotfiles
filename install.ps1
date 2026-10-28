@@ -5,6 +5,10 @@
 # only through the Fedora WSL Tailscale (install.sh).
 # =============================================================================
 
+param(
+    [switch]$WithRE
+)
+
 $ErrorActionPreference = "Stop"
 $dotfiles = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $userHome = $env:USERPROFILE
@@ -29,13 +33,14 @@ $packages = @(
     @{ id = "Inkscape.Inkscape";        name = "Inkscape" }
 )
 
+$ErrorActionPreference = "Continue"
 foreach ($pkg in $packages) {
-    $installed = winget list --id $pkg.id 2>$null | Select-String $pkg.id
+    $installed = winget list --id $pkg.id --accept-source-agreements 2>$null | Select-String $pkg.id
     if ($installed) {
         Write-Host "  [skip] $($pkg.name) already installed"
     } else {
         Write-Host "  [install] $($pkg.name)..."
-        winget install --id $pkg.id -e --silent 2>&1 | Out-Null
+        winget install --id $pkg.id -e --silent --accept-package-agreements --accept-source-agreements *>$null
         Write-Host "  [ok] $($pkg.name)"
     }
 }
@@ -43,31 +48,44 @@ foreach ($pkg in $packages) {
 # Install zsh + tmux via MSYS2 pacman
 Write-Host ""
 Write-Host "==> Installing zsh + tmux via MSYS2..."
-& "C:\msys64\usr\bin\pacman.exe" -S --noconfirm zsh tmux 2>&1 | Out-Null
+& "C:\msys64\usr\bin\pacman.exe" -S --noconfirm zsh tmux *>$null
 Write-Host "  [ok] zsh + tmux"
 
 # -----------------------------------------------------------------------------
-# PATH — add MSYS2, Python, agy, ~/.local/bin permanently
+# PATH — add MSYS2, Python, agy, ~/.local/bin, ~/.npm-global permanently
 # -----------------------------------------------------------------------------
 Write-Host ""
 Write-Host "==> Configuring PATH..."
+$pyDir = "$userHome\AppData\Local\Programs\Python\Python312"
+if (Test-Path "$userHome\AppData\Local\Programs\Python\Python312-arm64\python.exe") {
+    $pyDir = "$userHome\AppData\Local\Programs\Python\Python312-arm64"
+}
 $pathsToAdd = @(
     "C:\msys64\usr\bin",
-    "C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python312",
-    "C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python312\Scripts",
-    "C:\Users\$env:USERNAME\AppData\Local\agy\bin",
-    "C:\Users\$env:USERNAME\.local\bin",
-    "C:\Users\$env:USERNAME\.npm-global\bin"
+    $pyDir,
+    "$pyDir\Scripts",
+    "$userHome\AppData\Local\agy\bin",
+    "$userHome\.local\bin",
+    "$userHome\.npm-global",
+    "$userHome\.npm-global\bin"
 )
-$currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-$toAdd = $pathsToAdd | Where-Object { $currentPath -notlike "*$_*" }
-if ($toAdd) {
-    $newPath = $currentPath + ";" + ($toAdd -join ";")
+$rawUserPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+# Strip any accidental .exe file paths (e.g. .local\bin\claude.exe) and normalize directory paths
+$pathEntries = @(
+    $rawUserPath -split ';' |
+    Where-Object { $_ -and ($_ -notmatch '\.exe$') } |
+    ForEach-Object { $_.TrimEnd('\') }
+)
+$toAdd = $pathsToAdd | Where-Object { $pathEntries -notcontains $_.TrimEnd('\') }
+if ($toAdd -or ($rawUserPath -match '\.exe')) {
+    $newPath = (@($pathEntries) + @($toAdd) | Select-Object -Unique) -join ";"
     [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
     Write-Host "  Added: $($toAdd -join ', ')"
 } else {
     Write-Host "  Already configured"
 }
+# Refresh current session PATH so newly installed winget tools (node/npm, python, claude) are found immediately
+$env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
 
 # -----------------------------------------------------------------------------
 # NPM GLOBAL PREFIX
@@ -75,7 +93,7 @@ if ($toAdd) {
 Write-Host ""
 Write-Host "==> Configuring npm global prefix..."
 New-Item -ItemType Directory -Force -Path "$userHome\.npm-global" | Out-Null
-& npm config set prefix "$userHome\.npm-global"
+& npm config set prefix "$userHome\.npm-global" *>$null
 
 # -----------------------------------------------------------------------------
 # NPM TOOLS (Claude Code, Gemini CLI)
@@ -88,10 +106,10 @@ $npmTools = @(
 )
 foreach ($tool in $npmTools) {
     if (Get-Command $tool.cmd -ErrorAction SilentlyContinue) {
-        Write-Host "  [skip] $($tool.cmd) already installed"
+        Write-Host "  [skip] $($tool.cmd) already installed ($((Get-Command $tool.cmd).Source))"
     } else {
         Write-Host "  [install] $($tool.pkg)..."
-        npm install -g $tool.pkg 2>&1 | Out-Null
+        & npm install -g $tool.pkg *>$null
         Write-Host "  [ok] $($tool.cmd)"
     }
 }
@@ -103,7 +121,7 @@ Write-Host ""
 Write-Host "==> Installing Oh My Zsh..."
 if (!(Test-Path "$userHome\.oh-my-zsh")) {
     $env:RUNZSH = "no"; $env:CHSH = "no"; $env:KEEP_ZSHRC = "yes"
-    bash -c 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" -- --unattended' 2>&1 | Out-Null
+    bash -c 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" -- --unattended' *>$null
     Write-Host "  [ok] Oh My Zsh installed"
 } else {
     Write-Host "  [skip] Oh My Zsh already installed"
@@ -118,7 +136,7 @@ $plugins = @(
 foreach ($p in $plugins) {
     $dest = "$zshCustom\plugins\$($p.dir)"
     if (!(Test-Path $dest)) {
-        git clone $p.url $dest 2>&1 | Out-Null
+        git clone $p.url $dest *>$null
         Write-Host "  [ok] $($p.dir)"
     } else {
         Write-Host "  [skip] $($p.dir) already installed"
@@ -139,7 +157,7 @@ Copy-Item "$pokemonSrc\pokemon-colorscripts.py" $pokemonDst -Force
 Copy-Item "$pokemonSrc\pokemon.json" $pokemonDst -Force
 
 $wrapperPath = "$localBin\pokemon-colorscripts"
-$python = "C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python312\python.exe"
+$python = "$pyDir\python.exe"
 Set-Content -Path $wrapperPath -Value "#!/bin/bash`nexec `"$python`" `"$pokemonDst\pokemon-colorscripts.py`" `"`$@`""
 Write-Host "  [ok] pokemon-colorscripts -> $wrapperPath"
 
@@ -150,10 +168,11 @@ Write-Host ""
 Write-Host "==> Installing CLI-Anything plugin..."
 $cliAnythingRepo = "$dotfiles\CLI-Anything"
 if (!(Test-Path "$cliAnythingRepo\.git")) {
-    git -C $dotfiles submodule update --init --recursive 2>&1 | Out-Null
+    git clone https://github.com/HKUDS/CLI-Anything.git $cliAnythingRepo *>$null
 }
 $pluginDst = "$userHome\.claude\plugins\cli-anything"
-if (!(Test-Path $pluginDst)) {
+if ((Test-Path "$cliAnythingRepo\cli-anything-plugin") -and !(Test-Path $pluginDst)) {
+    New-Item -ItemType Directory -Force -Path "$userHome\.claude\plugins" | Out-Null
     Copy-Item "$cliAnythingRepo\cli-anything-plugin" $pluginDst -Recurse
     Write-Host "  [ok] cli-anything plugin installed"
 } else {
@@ -164,7 +183,7 @@ if (!(Test-Path $pluginDst)) {
 foreach ($app in @("gimp", "inkscape")) {
     $harness = "$cliAnythingRepo\$app\agent-harness"
     if (Test-Path $harness) {
-        & $python -m pip install -e $harness --quiet
+        & $python -m pip install -e $harness --quiet *>$null
         Write-Host "  [ok] cli-anything-$app harness"
     }
 }
@@ -174,7 +193,7 @@ foreach ($app in @("gimp", "inkscape")) {
 # -----------------------------------------------------------------------------
 Write-Host ""
 Write-Host "==> Installing Graphify (codebase knowledge graph)..."
-& $python -m pip install graphifyy --quiet
+& $python -m pip install graphifyy --quiet *>$null
 Write-Host "  [ok] graphifyy Python package"
 
 # -----------------------------------------------------------------------------
@@ -183,10 +202,14 @@ Write-Host "  [ok] graphifyy Python package"
 Write-Host ""
 Write-Host "==> Installing AI Assistant plugins & skills..."
 
-# Caveman plugin for Claude Code
-bash -c "yes | claude plugin marketplace add JuliusBrussee/caveman 2>/dev/null || true" 2>&1 | Out-Null
-bash -c "yes | claude plugin install caveman@caveman 2>/dev/null || true" 2>&1 | Out-Null
-Write-Host "  [ok] caveman plugin (Claude Code)"
+# Claude Code plugins
+& claude plugin marketplace add JuliusBrussee/caveman *>$null
+& claude plugin marketplace add forrestchang/andrej-karpathy-skills *>$null
+& claude plugin install caveman@caveman *>$null
+& claude plugin install andrej-karpathy-skills@karpathy-skills *>$null
+& claude plugin install rust-analyzer-lsp@claude-plugins-official *>$null
+$ErrorActionPreference = "Stop"
+Write-Host "  [ok] Claude Code plugins (caveman, karpathy-skills, rust-analyzer-lsp)"
 
 # Skills: shared skills\ go to every agent, then .claude\skills and .gemini\skills
 # overlay tool-specific skills (or override a shared one of the same name)
@@ -244,6 +267,10 @@ foreach ($link in $links) {
     if (Test-Path $link.dst) { Remove-Item $link.dst -Force }
     New-Item -ItemType HardLink -Path $link.dst -Target $link.src | Out-Null
     Write-Host "  linked: $($link.dst)"
+}
+
+if ($WithRE -and (Test-Path "$userHome\open-astro-cps\scripts\setup-re.ps1")) {
+    & "$userHome\open-astro-cps\scripts\setup-re.ps1"
 }
 
 # -----------------------------------------------------------------------------
