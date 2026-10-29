@@ -22,6 +22,7 @@ This repo contains **shell and editor configuration only**. Other domains live i
 | `homelab` (private) | Proxmox/TrueNAS ops, Tailscale network, AI agent harness (goose/aider/claw/diddy/brain-router), benchmarks, memory sidecars |
 | `skyway96` | 96% keyboard plate DXF + KiCad notes |
 | `llm-tournament` | Local-model bench harness + results |
+| `open-astro-cps` | Open-source interoperability & right-to-repair CPS/KFDtool toolkit for Mario's personally owned surplus Motorola ASTRO 25 radios (XTS 2500 / PRC-153) and self-generated keys |
 
 `.zshrc` adds `<homelab>/bin` to `PATH` and aliases `dgoose`, `dclaw`, `daider`, `brain-router` if the homelab repo is cloned at `/workspaces/homelab` or `~/homelab`.
 
